@@ -9,6 +9,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+
       devOptions: {
         enabled: true,
       },
@@ -17,43 +18,48 @@ export default defineConfig({
         name: 'Boondocks Inventory Management',
         description:
           'Smart inventory management system for Boondocks Restaurant',
-        icons: [
-          {
-            src: '/favicon/web-app-manifest-192x192.png',
-            type: 'image/png',
-            sizes: '192x192',
-            purpose: 'any maskable',
-          },
-          {
-            src: '/favicon/web-app-manifest-512x512.png',
-            type: 'image/png',
-            sizes: '512x512',
-            purpose: 'any maskable',
-          },
-        ],
         start_url: '/',
         display: 'standalone',
         theme_color: '#6366f1',
         background_color: '#ffffff',
         orientation: 'portrait',
+        icons: [
+          {
+            src: '/favicon/web-app-manifest-192x192.png',
+            type: 'image/png',
+            sizes: '192x192',
+            purpose: 'any',
+          },
+          {
+            src: '/favicon/web-app-manifest-192x192.png',
+            type: 'image/png',
+            sizes: '192x192',
+            purpose: 'maskable',
+          },
+          {
+            src: '/favicon/web-app-manifest-512x512.png',
+            type: 'image/png',
+            sizes: '512x512',
+            purpose: 'any',
+          },
+        ],
 
-        manifest: {
-          screenshots: [
-            {
-              src: '/favicon/web-app-manifest-192x192.png',
-              sizes: '192x192',
-              type: 'image/png',
-              form_factor: 'wide',
-              label: 'Boondocks Inventory Dashboard',
-            },
-            {
-              src: '/favicon/web-app-manifest-192x192.png',
-              sizes: '192x192',
-              type: 'image/png',
-              label: 'Inventory Management',
-            },
-          ],
-        },
+        screenshots: [
+          {
+            src: '/favicon/web-app-manifest-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            form_factor: 'wide',
+            label: 'Boondocks Inventory Dashboard',
+          },
+          {
+            src: '/favicon/web-app-manifest-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            form_factor: 'narrow',
+            label: 'Inventory Management Mobile',
+          },
+        ],
       },
     }),
   ],
