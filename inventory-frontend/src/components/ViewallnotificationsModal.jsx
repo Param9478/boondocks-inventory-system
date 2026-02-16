@@ -31,7 +31,7 @@ const ViewAllNotificationsModal = ({ isOpen, onClose, notifications = [] }) => {
             >
               <Dialog.Panel className="w-full max-w-2xl transform overflow-hidden rounded-3xl bg-white shadow-2xl transition-all">
                 {/* Header */}
-                <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-5">
+                <div className="bg-linear-to-r from-indigo-600 to-purple-600 px-6 py-5">
                   <div className="flex items-center justify-between">
                     <Dialog.Title className="text-2xl font-bold text-white flex items-center space-x-2">
                       <Bell className="h-6 w-6" />
@@ -51,7 +51,7 @@ const ViewAllNotificationsModal = ({ isOpen, onClose, notifications = [] }) => {
                 </div>
 
                 {/* Content */}
-                <div className="max-h-[600px] overflow-y-auto">
+                <div className="max-h-150 overflow-y-auto">
                   {notifications.length === 0 ? (
                     <div className="px-6 py-12 text-center">
                       <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
@@ -72,7 +72,7 @@ const ViewAllNotificationsModal = ({ isOpen, onClose, notifications = [] }) => {
                           <div className="flex items-start space-x-4">
                             {/* Icon */}
                             <div
-                              className={`flex-shrink-0 mt-1 p-2 rounded-full ${
+                              className={`shrink-0 mt-1 p-2 rounded-full ${
                                 notif.type === 'critical'
                                   ? 'bg-red-100 text-red-600'
                                   : notif.type === 'warning'

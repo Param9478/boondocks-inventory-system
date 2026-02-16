@@ -1,140 +1,161 @@
-import React, { Fragment } from 'react';
-import { Menu, Transition } from '@headlessui/react';
-import { Bell, AlertTriangle, Clock, CheckCircle, X } from 'lucide-react';
+import React, { useEffect } from 'react';
+import { X, AlertTriangle, Clock, CheckCircle, Trash2 } from 'lucide-react';
 
-const NotificationDropdown = ({ notifications = [], onClear, onViewAll }) => {
+const NotificationDropDown = ({ isOpen, onClose, notifications, onClear }) => {
+  // Prevent body scroll when bottom sheet is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
   return (
-    <Menu as="div" className="relative">
-      {({ open, close }) => (
-        <>
-          <Menu.Button className="relative bg-white/20 backdrop-blur-lg p-2.5 rounded-xl hover:bg-white/30 transition-all duration-200 border border-white/30">
-            <Bell className="h-5 w-5 text-white" />
+    <>
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 transition-opacity duration-300"
+        onClick={onClose}
+      />
+
+      {/* Bottom Sheet */}
+      <div className="fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-3xl shadow-2xl max-h-[85vh] flex flex-col animate-slide-up">
+        {/* Handle Bar */}
+        <div className="flex justify-center pt-3 pb-2">
+          <div className="w-12 h-1.5 bg-gray-300 rounded-full" />
+        </div>
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-gray-200">
+          <div>
+            <h3 className="text-lg sm:text-xl font-bold text-gray-900">
+              Notifications
+            </h3>
+            <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
+              {notifications.length} notification
+              {notifications.length !== 1 ? 's' : ''}
+            </p>
+          </div>
+          <div className="flex items-center space-x-2">
             {notifications.length > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center animate-pulse">
-                {notifications.length}
-              </span>
+              <button
+                onClick={() => {
+                  onClear();
+                  onClose();
+                }}
+                className="p-2 text-gray-400 hover:text-red-600 active:scale-95 transition-all rounded-lg hover:bg-red-50"
+                title="Clear all"
+              >
+                <Trash2 className="h-5 w-5" />
+              </button>
             )}
-          </Menu.Button>
+            <button
+              onClick={onClose}
+              className="p-2 text-gray-400 hover:text-gray-600 active:scale-95 transition-all rounded-lg hover:bg-gray-100"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
 
-          <Transition
-            as={Fragment}
-            enter="transition ease-out duration-100"
-            enterFrom="transform opacity-0 scale-95"
-            enterTo="transform opacity-100 scale-100"
-            leave="transition ease-in duration-75"
-            leaveFrom="transform opacity-100 scale-100"
-            leaveTo="transform opacity-0 scale-95"
-          >
-            <Menu.Items className="absolute right-0 mt-2 w-96 origin-top-right rounded-2xl bg-white shadow-2xl ring-1 ring-black ring-opacity-5 focus:outline-none overflow-hidden">
-              {/* Header */}
-              <div className="px-4 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 flex items-center justify-between">
-                <h3 className="text-lg font-bold text-white">Notifications</h3>
-                <div className="flex items-center space-x-2">
-                  {notifications.length > 0 && (
-                    <button
-                      onClick={() => {
-                        onClear();
-                        close(); // Close dropdown after clearing
-                      }}
-                      className="text-white/80 hover:text-white text-sm font-medium transition-colors"
+        {/* Notifications List */}
+        <div className="flex-1 overflow-y-auto overscroll-contain">
+          {notifications.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 px-4">
+              <div className="bg-green-100 p-4 rounded-full mb-4">
+                <CheckCircle className="h-12 w-12 text-green-600" />
+              </div>
+              <p className="text-lg font-semibold text-gray-900 mb-1">
+                All caught up!
+              </p>
+              <p className="text-sm text-gray-500 text-center">
+                No new notifications at the moment
+              </p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {notifications.map((notif, index) => (
+                <div
+                  key={index}
+                  className="px-4 sm:px-6 py-4 active:bg-gray-50 transition-colors"
+                >
+                  <div className="flex items-start space-x-3">
+                    {/* Icon */}
+                    <div
+                      className={`shrink-0 p-2.5 rounded-xl ${
+                        notif.type === 'critical'
+                          ? 'bg-red-100 text-red-600'
+                          : notif.type === 'warning'
+                            ? 'bg-yellow-100 text-yellow-600'
+                            : 'bg-blue-100 text-blue-600'
+                      }`}
                     >
-                      Clear All
-                    </button>
-                  )}
-                  {/* Close X button */}
-                  <button
-                    onClick={close}
-                    className="text-white/80 hover:text-white transition-colors p-1"
-                    title="Close"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
+                      {notif.type === 'critical' ? (
+                        <AlertTriangle className="h-5 w-5" />
+                      ) : notif.type === 'warning' ? (
+                        <Clock className="h-5 w-5" />
+                      ) : (
+                        <CheckCircle className="h-5 w-5" />
+                      )}
+                    </div>
 
-              {/* Notifications List */}
-              <div className="max-h-96 overflow-y-auto">
-                {notifications.length === 0 ? (
-                  <div className="px-4 py-8 text-center">
-                    <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-3" />
-                    <p className="text-gray-500 font-medium">All caught up!</p>
-                    <p className="text-sm text-gray-400 mt-1">
-                      No new notifications
-                    </p>
-                  </div>
-                ) : (
-                  <div className="divide-y divide-gray-100">
-                    {notifications.map((notif, index) => (
-                      <Menu.Item key={index}>
-                        {({ active }) => (
-                          <div
-                            className={`px-4 py-3 transition-colors ${
-                              active ? 'bg-gray-50' : ''
-                            }`}
-                          >
-                            <div className="flex items-start space-x-3">
-                              {/* Icon based on type */}
-                              <div
-                                className={`flex-shrink-0 mt-1 ${
-                                  notif.type === 'critical'
-                                    ? 'text-red-500'
-                                    : notif.type === 'warning'
-                                      ? 'text-yellow-500'
-                                      : 'text-blue-500'
-                                }`}
-                              >
-                                {notif.type === 'critical' ? (
-                                  <AlertTriangle className="h-5 w-5" />
-                                ) : notif.type === 'warning' ? (
-                                  <Clock className="h-5 w-5" />
-                                ) : (
-                                  <Bell className="h-5 w-5" />
-                                )}
-                              </div>
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm sm:text-base font-semibold text-gray-900 leading-tight">
+                            {notif.title}
+                          </p>
+                          <p className="text-xs sm:text-sm text-gray-600 mt-1 leading-relaxed">
+                            {notif.message}
+                          </p>
+                          {notif.time && (
+                            <p className="text-xs text-gray-400 mt-2">
+                              {notif.time}
+                            </p>
+                          )}
+                        </div>
 
-                              {/* Content */}
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-semibold text-gray-900">
-                                  {notif.title}
-                                </p>
-                                <p className="text-sm text-gray-600 mt-1">
-                                  {notif.message}
-                                </p>
-                                {notif.time && (
-                                  <p className="text-xs text-gray-400 mt-1">
-                                    {notif.time}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                          </div>
+                        {/* Priority Badge */}
+                        {notif.type === 'critical' && (
+                          <span className="shrink-0 px-2 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded-full">
+                            Urgent
+                          </span>
                         )}
-                      </Menu.Item>
-                    ))}
+                      </div>
+                    </div>
                   </div>
-                )}
-              </div>
-
-              {/* Footer - Only show if more than 3 notifications */}
-              {notifications.length > 3 && (
-                <div className="px-4 py-3 bg-gray-50 border-t border-gray-100">
-                  <button
-                    onClick={() => {
-                      onViewAll();
-                      close(); // Close dropdown after clicking view all
-                    }}
-                    className="w-full text-center text-sm font-semibold text-indigo-600 hover:text-indigo-700 transition-colors py-2 hover:bg-gray-100 rounded-lg"
-                  >
-                    View All {notifications.length} Notifications
-                  </button>
                 </div>
-              )}
-            </Menu.Items>
-          </Transition>
-        </>
-      )}
-    </Menu>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Safe Area Bottom Padding for iOS */}
+        <div className="h-safe-area-inset-bottom bg-white" />
+      </div>
+
+      <style jsx>{`
+        @keyframes slide-up {
+          from {
+            transform: translateY(100%);
+          }
+          to {
+            transform: translateY(0);
+          }
+        }
+        .animate-slide-up {
+          animation: slide-up 0.3s ease-out;
+        }
+      `}</style>
+    </>
   );
 };
 
-export default NotificationDropdown;
+export default NotificationDropDown;

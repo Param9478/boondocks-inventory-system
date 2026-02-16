@@ -261,7 +261,7 @@ const EndOfDayCount = ({ onComplete }) => {
                       {item.isNew && (
                         <button
                           onClick={() => deleteItem(item._id)}
-                          className="text-slate-300 hover:text-red-500 flex-shrink-0"
+                          className="text-slate-300 hover:text-red-500 shrink-0"
                           title="Remove"
                         >
                           <Trash2 size={14} />
@@ -286,7 +286,7 @@ const EndOfDayCount = ({ onComplete }) => {
                       onChange={(e) =>
                         handleInputChange(item._id, e.target.value)
                       }
-                      className="w-16 sm:w-24 p-2 bg-slate-50 border-2 border-slate-200 rounded-lg text-right font-black text-indigo-600 text-lg focus:border-indigo-600 focus:bg-white outline-none flex-shrink-0"
+                      className="w-16 sm:w-24 p-2 bg-slate-50 border-2 border-slate-200 rounded-lg text-right font-black text-indigo-600 text-lg focus:border-indigo-600 focus:bg-white outline-none shrink-0"
                     />
                   </div>
                 ))}
