@@ -1,28 +1,27 @@
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-import tailwindcss from '@tailwindcss/vite';
-import { VitePWA } from 'vite-plugin-pwa';
-
 export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      // Isnu enable karo taaki laptop te vi check kar sako
+      devOptions: {
+        enabled: true 
+      },
       manifest: {
         short_name: 'Boondocks',
         name: 'Boondocks Inventory Management',
-        description:
-          'Smart inventory management system for Boondocks Restaurant',
+        description: 'Smart inventory management system for Boondocks Restaurant',
         icons: [
           {
-            src: './public/favicon/web-app-manifest-192x192.png',
+            // Path hamesha '/' ton shuru karo, './public' nahi likhna
+            src: '/favicon/web-app-manifest-192x192.png', 
             type: 'image/png',
             sizes: '192x192',
             purpose: 'any maskable',
           },
           {
-            src: './public/favicon/web-app-manifest-512x512.png',
+            src: '/favicon/web-app-manifest-512x512.png',
             type: 'image/png',
             sizes: '512x512',
             purpose: 'any maskable',
@@ -33,9 +32,6 @@ export default defineConfig({
         theme_color: '#6366f1',
         background_color: '#ffffff',
         orientation: 'portrait',
-        scope: '/',
-        categories: ['business', 'productivity'],
-        prefer_related_applications: false,
       },
     }),
   ],
