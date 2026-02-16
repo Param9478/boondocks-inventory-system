@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChefHat, Bell } from 'lucide-react';
-import NotificationDropDown from './NotificationDropDown';
+import NotificationDropDown from './Notificationdropdown';
 
 const Header = ({ items = [] }) => {
   const [notifications, setNotifications] = useState([]);
