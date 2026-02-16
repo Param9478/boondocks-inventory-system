@@ -9,7 +9,7 @@ import FilterBar from './components/FilterBar';
 import Analytics from './components/Analytics';
 import QuickActions from './components/QuickActions';
 import { showSuccess, showError } from './utils/toast';
-import EndOfDayCount from './components/Endofdaycount';
+import EndOfDayCount from './components/EndOfDayCount';
 
 const API_URL =
   import.meta.env.VITE_API_URL || 'https://boondocks-api.onrender.com';
