@@ -147,7 +147,7 @@ const AddItemModal = ({ isOpen, onClose, onSubmit }) => {
                     <div>
                       <label className="flex items-center space-x-2 text-xs font-semibold text-gray-700 mb-2">
                         <Tag className="h-3.5 w-3.5 text-indigo-600" />
-                        <span>Category *</span>
+                        <span>Category</span>
                       </label>
                       <select
                         value={formData.category}
@@ -170,7 +170,7 @@ const AddItemModal = ({ isOpen, onClose, onSubmit }) => {
                     <div>
                       <label className="flex items-center space-x-2 text-xs font-semibold text-gray-700 mb-2">
                         <Truck className="h-3.5 w-3.5 text-indigo-600" />
-                        <span>Supplier *</span>
+                        <span>Supplier</span>
                       </label>
                       <select
                         value={formData.supplier}
@@ -194,7 +194,7 @@ const AddItemModal = ({ isOpen, onClose, onSubmit }) => {
                     <div>
                       <label className="flex items-center space-x-2 text-xs font-semibold text-gray-700 mb-2">
                         <Hash className="h-3.5 w-3.5 text-green-600" />
-                        <span>Quantity *</span>
+                        <span>Quantity</span>
                       </label>
                       <input
                         type="number"
@@ -237,7 +237,7 @@ const AddItemModal = ({ isOpen, onClose, onSubmit }) => {
                     <div>
                       <label className="flex items-center space-x-2 text-xs font-semibold text-gray-700 mb-2">
                         <Hash className="h-3.5 w-3.5 text-red-600" />
-                        <span>Min Level *</span>
+                        <span>Min Level</span>
                       </label>
                       <input
                         type="number"

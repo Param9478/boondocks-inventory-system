@@ -125,63 +125,8 @@ function App() {
     }
   };
 
-  // const handleUpdateItem = async (id, updates) => {
-  //   try {
-  //     console.log('Updating item:', id, updates);
-
-  //     if (id.startsWith('temp-') || id.startsWith('placeholder-')) {
-  //       const item = items.find((i) => i._id === id);
-  //       if (!item) {
-  //         showError('Item not found');
-  //         return false;
-  //       }
-
-  //       const newItemData = {
-  //         name: updates.name || item.name,
-  //         category: updates.category || item.category,
-  //         quantity:
-  //           parseFloat(updates.quantity) !== undefined
-  //             ? parseFloat(updates.quantity)
-  //             : item.quantity || 0,
-  //         minStock:
-  //           parseFloat(updates.minStock) !== undefined
-  //             ? parseFloat(updates.minStock)
-  //             : item.minStock || 5,
-  //         unit: 'each',
-  //         supplier: updates.supplier || 'Other',
-  //       };
-  //       if (updates.name) newItemData.name = updates.name;
-  //       if (updates.category) newItemData.category = updates.category;
-  //       if (updates.costPerUnit)
-  //         newItemData.costPerUnit = parseFloat(updates.costPerUnit);
-  //       if (updates.notes) newItemData.notes = updates.notes;
-
-  //       console.log('Creating from placeholder:', newItemData);
-  //       const response = await axios.post('/api/items', newItemData);
-  //       console.log('Create response:', response.data);
-
-  //       await fetchItems();
-  //       showSuccess('Item added!');
-  //       return true;
-  //     }
-
-  //     console.log('Updating existing:', id, updates);
-  //     const response = await axios.put(`/api/items/${id}`, updates);
-  //     console.log('Update response:', response.data);
-
-  //     await fetchItems();
-  //     showSuccess('Updated!');
-  //     return true;
-  //   } catch (err) {
-  //     console.error('Update error:', err.response?.data || err);
-  //     showError(err.response?.data?.message || 'Failed to update');
-  //     return false;
-  //   }
-  // };
-
   const handleUpdateItem = async (id, updates) => {
     try {
-      // ✅ No more temp-id checks needed since we seeded everything
       const response = await axios.put(`/api/items/${id}`, updates);
       await fetchItems();
       showSuccess('Updated!');
@@ -191,6 +136,7 @@ function App() {
       return false;
     }
   };
+
   const handleDeleteItem = async (id) => {
     try {
       await axios.delete(`/api/items/${id}`);
@@ -246,7 +192,7 @@ function App() {
 
       <Header onAddClick={() => setIsModalOpen(true)} items={items} />
 
-      <div className="max-w-400 mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Dashboard stats={stats} />
 
         <QuickActions

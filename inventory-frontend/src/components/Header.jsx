@@ -71,8 +71,8 @@ const Header = ({ items = [] }) => {
             className="flex items-center space-x-3 min-w-0 flex-1 cursor-pointer hover:opacity-90 active:scale-95 transition-all"
             title="Go to Home"
           >
-            <div className="bg-white/20 backdrop-blur-lg p-2 rounded-xl border border-white/30 shrink-0">
-              <ChefHat className="h-6 w-6 sm:h-7 sm:w-7 text-white" />
+            <div className="bg-white/20 backdrop-blur-lg p-2.5 rounded-xl border border-white/30 shrink-0">
+              <ChefHat className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
             </div>
             <div className="min-w-0">
               <h1 className="text-lg sm:text-2xl font-bold text-white tracking-tight truncate">
@@ -88,7 +88,7 @@ const Header = ({ items = [] }) => {
           <div className="flex items-center shrink-0 ml-4">
             <div className="relative flex items-center justify-center">
               <button
-                ref={bellRef} // ✅ REF ATTACH KARO
+                ref={bellRef}
                 onClick={(e) => {
                   e.preventDefault();
                   setIsNotificationOpen(!isNotificationOpen);
@@ -97,7 +97,7 @@ const Header = ({ items = [] }) => {
               >
                 <Bell className="h-5 w-5 text-white" />
                 {notifications.length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full h-5 w-5 flex items-center justify-center border-2 border-indigo-600">
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full h-5 w-5 flex items-center justify-center">
                     {notifications.length}
                   </span>
                 )}
@@ -108,7 +108,7 @@ const Header = ({ items = [] }) => {
                 onClose={() => setIsNotificationOpen(false)}
                 notifications={notifications}
                 onClear={() => setNotifications([])}
-                anchorRef={bellRef} // ✅ EH PASS KARO
+                anchorRef={bellRef}
               />
             </div>
           </div>
