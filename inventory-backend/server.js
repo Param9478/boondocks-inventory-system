@@ -1,116 +1,77 @@
-require('dotenv').config();
 const express = require('express');
+const mongoose = require('mongoose');
 const cors = require('cors');
-const helmet = require('helmet');
-const morgan = require('morgan');
-const compression = require('compression');
-const connectDB = require('./config/database');
-const itemRoutes = require('./routes/itemRoutes');
-const { notFound, errorHandler } = require('./middleware/errorHandler');
+require('dotenv').config();
 
-// Initialize Express app
+const authRoutes = require('./routes/Auth');
+const itemRoutes = require('./routes/Item');
+const authMiddleware = require('./middleware/auth');
+
 const app = express();
 
-// Connect to Database
-connectDB();
-
 // Middleware
-// 1. Security headers
-app.use(helmet());
+app.use(cors());
+app.use(express.json());
 
-// 2. CORS configuration
-const corsOptions = {
-  origin: process.env.CLIENT_URL || 'http://localhost:3000',
-  credentials: true,
-  optionsSuccessStatus: 200,
-};
-app.use(cors(corsOptions));
+// MongoDB Connection
+const MONGODB_URI =
+  process.env.MONGODB_URI || 'mongodb://localhost:27017/boondocks-inventory';
 
-// 3. Body parser
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+mongoose
+  .connect(MONGODB_URI)
+  .then(() => console.log('✅ MongoDB Connected'))
+  .catch((err) => console.error('❌ MongoDB Connection Error:', err));
 
-// 4. Compression
-app.use(compression());
-
-// 5. Logging
-if (process.env.NODE_ENV === 'development') {
-  app.use(morgan('dev'));
-} else {
-  app.use(morgan('combined'));
-}
-
-// Health check route
+// Routes
 app.get('/', (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: '🍽️ Boondocks Inventory API',
+  res.json({
+    message: 'Boondocks Inventory API',
     version: '1.0.0',
-    status: 'running',
-    timestamp: new Date().toISOString(),
-  });
-});
-
-// API status route
-app.get('/api', (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: 'API is running',
     endpoints: {
-      items: '/api/items',
-      stats: '/api/items/stats',
-      lowStock: '/api/items/alerts/low-stock',
-      expiring: '/api/items/alerts/expiring-soon',
+      auth: '/api/auth',
+      items: '/api/items (protected)',
     },
   });
 });
 
-// Routes
-app.use('/api/items', itemRoutes);
+// Auth routes (public)
+app.use('/api/auth', authRoutes);
 
-// Error handling
-app.use(notFound);
-app.use(errorHandler);
+// Item routes (protected with authentication)
+app.use('/api/items', authMiddleware, itemRoutes);
 
-// Server
-const PORT = process.env.PORT || 3002;
-
-const server = app.listen(PORT, () => {
-  console.log('');
-  console.log('═══════════════════════════════════════════════════════');
-  console.log(`🚀 Server running in ${process.env.NODE_ENV} mode`);
-  console.log(`📡 API: http://localhost:${PORT}`);
-  console.log(`🍽️  Boondocks Inventory Management System`);
-  console.log('═══════════════════════════════════════════════════════');
-  console.log('');
-  console.log('Available Endpoints:');
-  console.log('  GET    /api/items              - Get all items');
-  console.log('  GET    /api/items/:id          - Get single item');
-  console.log('  POST   /api/items              - Create item');
-  console.log('  PUT    /api/items/:id          - Update item');
-  console.log('  DELETE /api/items/:id          - Delete item');
-  console.log('  GET    /api/items/stats        - Get statistics');
-  console.log('  GET    /api/items/alerts/low-stock      - Low stock items');
-  console.log('  GET    /api/items/alerts/expiring-soon  - Expiring items');
-  console.log('  POST   /api/items/bulk-update  - Bulk update');
-  console.log('');
-});
-
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (err) => {
-  console.error('❌ Unhandled Rejection! Shutting down...');
-  console.error(err.name, err.message);
-  server.close(() => {
-    process.exit(1);
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({
+    success: false,
+    message: 'Something went wrong!',
+    error: process.env.NODE_ENV === 'development' ? err.message : undefined,
   });
 });
 
-// Handle SIGTERM
-process.on('SIGTERM', () => {
-  console.log('👋 SIGTERM received. Shutting down gracefully...');
-  server.close(() => {
-    console.log('✅ Process terminated!');
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: 'Route not found',
   });
+});
+
+const PORT = process.env.PORT || 5001;
+
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📍 API: http://localhost:${PORT}`);
+  console.log(`🔐 Auth endpoints:`);
+  console.log(`   POST /api/auth/signup`);
+  console.log(`   POST /api/auth/login`);
+  console.log(`   GET  /api/auth/verify`);
+  console.log(`📦 Item endpoints (protected):`);
+  console.log(`   GET    /api/items`);
+  console.log(`   POST   /api/items`);
+  console.log(`   PUT    /api/items/:id`);
+  console.log(`   DELETE /api/items/:id`);
 });
 
 module.exports = app;

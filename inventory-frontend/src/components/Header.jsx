@@ -1,11 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChefHat, Bell } from 'lucide-react';
+import { ChefHat, Bell, LogOut, User } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import NotificationDropDown from './Notificationdropdown';
 
 const Header = ({ items = [] }) => {
+  const { user, logout } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const bellRef = useRef(null);
+  const userMenuRef = useRef(null);
 
   // Generate notifications based on inventory status
   useEffect(() => {
@@ -61,6 +65,21 @@ const Header = ({ items = [] }) => {
     setNotifications(newNotifications);
   }, [items]);
 
+  // Close user menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setShowUserMenu(false);
+      }
+    };
+
+    if (showUserMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () =>
+        document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showUserMenu]);
+
   return (
     <header className="bg-linear-to-r from-indigo-600 via-purple-600 to-pink-600 shadow-xl sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -85,7 +104,8 @@ const Header = ({ items = [] }) => {
           </div>
 
           {/* Actions Section */}
-          <div className="flex items-center shrink-0 ml-4">
+          <div className="flex items-center gap-2 shrink-0 ml-4">
+            {/* Notification Bell */}
             <div className="relative flex items-center justify-center">
               <button
                 ref={bellRef}
@@ -93,11 +113,11 @@ const Header = ({ items = [] }) => {
                   e.preventDefault();
                   setIsNotificationOpen(!isNotificationOpen);
                 }}
-                className="relative bg-white/20 backdrop-blur-lg p-2.5 rounded-xl hover:bg-white/30 border border-white/30 flex items-center justify-center"
+                className="relative bg-white/20 backdrop-blur-lg p-2.5 rounded-xl hover:bg-white/30 border border-white/30 flex items-center justify-center transition-all"
               >
                 <Bell className="h-5 w-5 text-white" />
                 {notifications.length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full h-5 w-5 flex items-center justify-center border-2 border-indigo-600">
                     {notifications.length}
                   </span>
                 )}
@@ -110,6 +130,45 @@ const Header = ({ items = [] }) => {
                 onClear={() => setNotifications([])}
                 anchorRef={bellRef}
               />
+            </div>
+
+            {/* User Menu */}
+            <div className="relative" ref={userMenuRef}>
+              <button
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                className="flex items-center gap-2 bg-white/20 backdrop-blur-lg px-3 py-2 rounded-xl hover:bg-white/30 border border-white/30 transition-all"
+              >
+                <div className="bg-white/30 p-1 rounded-lg">
+                  <User className="h-4 w-4 text-white" />
+                </div>
+                <span className="text-white text-sm font-medium hidden sm:block">
+                  {user?.name?.split(' ')[0] || 'User'}
+                </span>
+              </button>
+
+              {/* Dropdown Menu */}
+              {showUserMenu && (
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden animate-dropdown">
+                  <div className="px-4 py-3 border-b border-gray-100">
+                    <p className="text-sm font-semibold text-gray-900 truncate">
+                      {user?.name}
+                    </p>
+                    <p className="text-xs text-gray-500 truncate">
+                      {user?.email}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      logout();
+                      setShowUserMenu(false);
+                    }}
+                    className="w-full px-4 py-3 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Sign Out
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

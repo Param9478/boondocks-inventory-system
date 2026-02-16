@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { Toaster } from 'react-hot-toast';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import Login from './components/Login';
+import Signup from './components/Signup';
 import Header from './components/Header';
 import Dashboard from './components/Dashboard';
 import AddItemModal from './components/AddItemModal';
@@ -11,11 +14,12 @@ import QuickActions from './components/QuickActions';
 import { showSuccess, showError } from './utils/toast';
 import EndOfDayCount from './components/EndOfDayCount';
 
-const API_URL =
-  import.meta.env.VITE_API_URL || 'https://boondocks-api.onrender.com';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 axios.defaults.baseURL = API_URL;
 
-function App() {
+function MainApp() {
+  const { user, loading: authLoading } = useAuth();
+  const [authView, setAuthView] = useState('login'); // 'login' or 'signup'
   const [items, setItems] = useState([]);
   const [filteredItems, setFilteredItems] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -26,9 +30,17 @@ function App() {
   const [viewMode, setViewMode] = useState('table');
   const [showEndOfDay, setShowEndOfDay] = useState(false);
   const [highlightedItemId, setHighlightedItemId] = useState(null);
-  const [showNightlyOnly, setShowNightlyOnly] = useState(false);
+
+  // ✅ Reset to login page when user logs out
+  useEffect(() => {
+    if (!user && !authLoading) {
+      setAuthView('login');
+    }
+  }, [user, authLoading]);
 
   const fetchItems = useCallback(async () => {
+    if (!user) return;
+
     try {
       setLoading(true);
       const res = await axios.get('/api/items');
@@ -40,7 +52,7 @@ function App() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     fetchItems();
@@ -96,7 +108,6 @@ function App() {
     try {
       console.log('Adding item:', formData);
 
-      // Check duplicate
       const existingItem = items.find(
         (item) => item.name.toLowerCase() === formData.name.toLowerCase(),
       );
@@ -165,6 +176,28 @@ function App() {
     }).length,
   };
 
+  // Show loading while checking auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-indigo-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block h-12 w-12 border-4 border-white/30 border-t-white rounded-full animate-spin mb-4"></div>
+          <p className="text-white text-lg">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show auth screens if not logged in
+  if (!user) {
+    return authView === 'login' ? (
+      <Login onSwitchToSignup={() => setAuthView('signup')} />
+    ) : (
+      <Signup onSwitchToLogin={() => setAuthView('login')} />
+    );
+  }
+
+  // Show main app if logged in
   return (
     <div className="min-h-screen bg-linear-to-br from-slate-50 via-blue-50 to-indigo-100">
       <Toaster
@@ -242,6 +275,14 @@ function App() {
         />
       )}
     </div>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <MainApp />
+    </AuthProvider>
   );
 }
 
