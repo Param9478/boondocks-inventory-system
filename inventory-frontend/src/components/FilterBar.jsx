@@ -82,110 +82,64 @@ const FilterBar = ({
         </button>
       </div>
 
-      {/* Filters Content */}
-      <div className={`${showFilters ? 'block' : 'hidden'} lg:block`}>
-        <div className="p-3 sm:p-4 space-y-3">
+      {/* Filters Content - Shows on mobile when toggled, always visible on desktop */}
+      <div
+        className={`${showFilters ? 'block' : 'hidden'} lg:block transition-all duration-200`}
+      >
+        <div className="p-3 sm:p-4 lg:px-4 lg:py-3 bg-white lg:bg-gray-50 lg:border-t lg:border-gray-100">
           {/* Filter Buttons */}
-          <div>
-            <div className="flex items-center space-x-2 text-xs sm:text-sm font-medium text-gray-600 mb-2">
-              <Filter className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              <span>Filter by:</span>
+          <div className="mb-3 lg:mb-0 lg:flex lg:items-center lg:justify-between lg:flex-wrap lg:gap-3">
+            <div className="lg:flex lg:items-center lg:space-x-2">
+              <div className="flex items-center space-x-2 text-xs sm:text-sm font-medium text-gray-600 mb-2 lg:mb-0">
+                <Filter className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span>Filter by:</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {filterButtons.map((btn) => (
+                  <button
+                    key={btn.value}
+                    onClick={() => setFilter(btn.value)}
+                    className={getButtonClasses(btn.value, btn.color)}
+                    style={
+                      filter === btn.value
+                        ? {
+                            backgroundColor:
+                              btn.color === 'indigo'
+                                ? '#4f46e5'
+                                : btn.color === 'purple'
+                                  ? '#9333ea'
+                                  : btn.color === 'red'
+                                    ? '#dc2626'
+                                    : btn.color === 'green'
+                                      ? '#16a34a'
+                                      : '#ea580c',
+                          }
+                        : undefined
+                    }
+                  >
+                    {btn.label}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {filterButtons.map((btn) => (
-                <button
-                  key={btn.value}
-                  onClick={() => setFilter(btn.value)}
-                  className={getButtonClasses(btn.value, btn.color)}
-                  style={
-                    filter === btn.value
-                      ? {
-                          backgroundColor:
-                            btn.color === 'indigo'
-                              ? '#4f46e5'
-                              : btn.color === 'purple'
-                                ? '#9333ea'
-                                : btn.color === 'red'
-                                  ? '#dc2626'
-                                  : btn.color === 'green'
-                                    ? '#16a34a'
-                                    : '#ea580c',
-                        }
-                      : undefined
-                  }
-                >
-                  {btn.label}
-                </button>
-              ))}
-            </div>
-          </div>
 
-          {/* Sort Dropdown */}
-          <div>
-            <div className="flex items-center space-x-2 text-xs sm:text-sm font-medium text-gray-600 mb-2">
-              <ArrowUpDown className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              <span>Sort by:</span>
+            {/* Sort Dropdown */}
+            <div className="mt-3 lg:mt-0 lg:flex lg:items-center lg:space-x-2">
+              <div className="flex items-center space-x-2 text-xs sm:text-sm font-medium text-gray-600 mb-2 lg:mb-0">
+                <ArrowUpDown className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="lg:hidden">Sort by:</span>
+              </div>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="w-full lg:w-auto px-3 sm:px-4 py-2 sm:py-2.5 bg-gray-100 lg:bg-white border border-gray-200 rounded-lg text-gray-700 font-medium text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200"
+              >
+                <option value="name">Name (A-Z)</option>
+                <option value="quantity">Quantity (Low to High)</option>
+                <option value="status">Status (Critical First)</option>
+                <option value="value">Value (High to Low)</option>
+              </select>
             </div>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="w-full px-3 sm:px-4 py-2 sm:py-2.5 bg-gray-100 border border-gray-200 rounded-lg text-gray-700 font-medium text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200"
-            >
-              <option value="name">Name (A-Z)</option>
-              <option value="quantity">Quantity (Low to High)</option>
-              <option value="status">Status (Critical First)</option>
-              <option value="value">Value (High to Low)</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      {/* Desktop Always-Visible Filters */}
-      <div className="hidden lg:block px-4 py-3 bg-gray-50 border-t border-gray-100">
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div className="flex items-center space-x-2">
-            <Filter className="h-4 w-4 text-gray-600" />
-            <div className="flex flex-wrap gap-2">
-              {filterButtons.map((btn) => (
-                <button
-                  key={btn.value}
-                  onClick={() => setFilter(btn.value)}
-                  className={getButtonClasses(btn.value, btn.color)}
-                  style={
-                    filter === btn.value
-                      ? {
-                          backgroundColor:
-                            btn.color === 'indigo'
-                              ? '#4f46e5'
-                              : btn.color === 'purple'
-                                ? '#9333ea'
-                                : btn.color === 'red'
-                                  ? '#dc2626'
-                                  : btn.color === 'green'
-                                    ? '#16a34a'
-                                    : '#ea580c',
-                        }
-                      : undefined
-                  }
-                >
-                  {btn.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <ArrowUpDown className="h-4 w-4 text-gray-600" />
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-gray-700 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200"
-            >
-              <option value="name">Name (A-Z)</option>
-              <option value="quantity">Quantity (Low-High)</option>
-              <option value="status">Status (Critical)</option>
-              <option value="value">Value (High-Low)</option>
-            </select>
           </div>
         </div>
       </div>

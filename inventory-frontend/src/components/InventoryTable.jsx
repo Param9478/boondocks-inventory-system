@@ -309,22 +309,23 @@ const InventoryTable = ({
         )}
 
         {/* Actions */}
-        <div className="px-3 sm:px-4 py-2 sm:py-3 bg-gray-100 border-t border-gray-200 flex items-center justify-end space-x-2">
+        {/* Actions - Mobile Version */}
+        <div className="sm:px-3 py-2 bg-gray-50/50 border-t border-gray-100 flex items-center justify-end sm:space-x-3">
           {isEditing ? (
             <>
               <button
                 onClick={() => saveEdit(item._id)}
-                className="flex items-center space-x-1 px-3 py-1.5 bg-green-600 text-white rounded-lg font-medium text-xs sm:text-sm active:scale-95 transition-all"
+                className="p-2 text-green-600 hover:bg-green-50 rounded-full transition-all active:scale-90"
+                title="Save"
               >
-                <Save className="h-3.5 w-3.5" />
-                <span>Save</span>
+                <Save className="h-5 w-5" />
               </button>
               <button
                 onClick={cancelEdit}
-                className="flex items-center space-x-1 px-3 py-1.5 bg-gray-300 text-gray-700 rounded-lg font-medium text-xs sm:text-sm active:scale-95 transition-all"
+                className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-all active:scale-90"
+                title="Cancel"
               >
-                <X className="h-3.5 w-3.5" />
-                <span>Cancel</span>
+                <X className="h-5 w-5" />
               </button>
             </>
           ) : (
@@ -334,10 +335,10 @@ const InventoryTable = ({
                   e.stopPropagation();
                   startEdit(item);
                 }}
-                className="flex items-center space-x-1 px-3 py-1.5 bg-blue-600 text-white rounded-lg font-medium text-xs sm:text-sm active:scale-95 transition-all"
+                className="p-2 text-indigo-500 hover:bg-indigo-50 rounded-full transition-all active:scale-90"
+                title="Edit"
               >
-                <Edit2 className="h-3.5 w-3.5" />
-                <span>Edit</span>
+                <Edit2 className="h-5 w-5" />
               </button>
               <button
                 onClick={(e) => {
@@ -346,10 +347,10 @@ const InventoryTable = ({
                     onDelete(item._id);
                   }
                 }}
-                className="flex items-center space-x-1 px-3 py-1.5 bg-red-600 text-white rounded-lg font-medium text-xs sm:text-sm active:scale-95 transition-all"
+                className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-all active:scale-90"
+                title="Delete"
               >
-                <Trash2 className="h-3.5 w-3.5" />
-                <span>Delete</span>
+                <Trash2 className="h-5 w-5" />
               </button>
             </>
           )}

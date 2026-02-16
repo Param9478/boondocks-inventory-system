@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { ChefHat, Plus, Bell, X } from 'lucide-react';
-import NotificationBottomSheet from './NotificationBottomSheet';
+import React, { useState, useEffect, useRef } from 'react';
+import { ChefHat, Bell } from 'lucide-react';
+import NotificationDropDown from './NotificationDropDown';
 
-const Header = ({ onAddClick, items = [] }) => {
+const Header = ({ items = [] }) => {
   const [notifications, setNotifications] = useState([]);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const bellRef = useRef(null);
 
   // Generate notifications based on inventory status
   useEffect(() => {
@@ -15,7 +16,10 @@ const Header = ({ onAddClick, items = [] }) => {
       (item) => item.quantity <= item.minStock,
     );
     lowStockItems.forEach((item) => {
-      const percentage = ((item.quantity / item.minStock) * 100).toFixed(0);
+      const percentage =
+        item.minStock > 0
+          ? ((item.quantity / item.minStock) * 100).toFixed(0)
+          : 0;
       if (item.quantity <= item.minStock * 0.5) {
         newNotifications.push({
           type: 'critical',
@@ -58,61 +62,59 @@ const Header = ({ onAddClick, items = [] }) => {
   }, [items]);
 
   return (
-    <>
-      <header className="bg-linear-to-r from-indigo-600 via-purple-600 to-pink-600 shadow-xl sticky top-0 z-40">
-        <div className="max-w-400 mx-auto px-3 sm:px-4 lg:px-8">
-          <div className="flex items-center justify-between h-14 sm:h-16 md:h-20">
-            {/* Logo & Title */}
-            <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
-              <div className="bg-white/20 backdrop-blur-lg p-2 sm:p-2.5 rounded-lg sm:rounded-xl border border-white/30 shrink-0">
-                <ChefHat className="h-5 w-5 sm:h-6 sm:w-6 md:h-7 md:w-7 text-white" />
-              </div>
-              <div className="min-w-0">
-                <h1 className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold text-white tracking-tight truncate">
-                  Boondocks
-                </h1>
-                <p className="text-[10px] sm:text-xs text-indigo-100 font-medium hidden sm:block">
-                  Smart Inventory
-                </p>
-              </div>
+    <header className="bg-linear-to-r from-indigo-600 via-purple-600 to-pink-600 shadow-xl sticky top-0 z-40">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16 sm:h-20">
+          {/* Logo & Title Section */}
+          <div
+            onClick={() => (window.location.href = '/')}
+            className="flex items-center space-x-3 min-w-0 flex-1 cursor-pointer hover:opacity-90 active:scale-95 transition-all"
+            title="Go to Home"
+          >
+            <div className="bg-white/20 backdrop-blur-lg p-2 rounded-xl border border-white/30 shrink-0">
+              <ChefHat className="h-6 w-6 sm:h-7 sm:w-7 text-white" />
             </div>
+            <div className="min-w-0">
+              <h1 className="text-lg sm:text-2xl font-bold text-white tracking-tight truncate">
+                Boondocks
+              </h1>
+              <p className="text-[10px] sm:text-xs text-indigo-100 font-medium hidden sm:block uppercase tracking-wider">
+                Smart Inventory
+              </p>
+            </div>
+          </div>
 
-            {/* Actions */}
-            <div className="flex items-center space-x-2 sm:space-x-3 shrink-0">
-              {/* Notification Button */}
+          {/* Actions Section */}
+          <div className="flex items-center shrink-0 ml-4">
+            <div className="relative flex items-center justify-center">
               <button
-                onClick={() => setIsNotificationOpen(true)}
-                className="relative bg-white/20 backdrop-blur-lg p-2 sm:p-2.5 rounded-lg sm:rounded-xl hover:bg-white/30 active:scale-95 transition-all duration-200 border border-white/30"
+                ref={bellRef} // ✅ REF ATTACH KARO
+                onClick={(e) => {
+                  e.preventDefault();
+                  setIsNotificationOpen(!isNotificationOpen);
+                }}
+                className="relative bg-white/20 backdrop-blur-lg p-2.5 rounded-xl hover:bg-white/30 border border-white/30 flex items-center justify-center"
               >
-                <Bell className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                <Bell className="h-5 w-5 text-white" />
                 {notifications.length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full h-4 w-4 sm:h-5 sm:w-5 flex items-center justify-center animate-pulse">
-                    {notifications.length > 9 ? '9+' : notifications.length}
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full h-5 w-5 flex items-center justify-center border-2 border-indigo-600">
+                    {notifications.length}
                   </span>
                 )}
               </button>
 
-              {/* Add Button */}
-              <button
-                onClick={onAddClick}
-                className="bg-white text-indigo-600 px-3 py-2 sm:px-4 sm:py-2.5 md:px-6 rounded-lg sm:rounded-xl font-semibold hover:bg-indigo-50 active:scale-95 transition-all duration-200 flex items-center space-x-1 sm:space-x-2 shadow-md text-sm sm:text-base"
-              >
-                <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
-                <span className="hidden xs:inline">Add</span>
-              </button>
+              <NotificationDropDown
+                isOpen={isNotificationOpen}
+                onClose={() => setIsNotificationOpen(false)}
+                notifications={notifications}
+                onClear={() => setNotifications([])}
+                anchorRef={bellRef} // ✅ EH PASS KARO
+              />
             </div>
           </div>
         </div>
-      </header>
-
-      {/* Bottom Sheet Notification */}
-      <NotificationBottomSheet
-        isOpen={isNotificationOpen}
-        onClose={() => setIsNotificationOpen(false)}
-        notifications={notifications}
-        onClear={() => setNotifications([])}
-      />
-    </>
+      </div>
+    </header>
   );
 };
 

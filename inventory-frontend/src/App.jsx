@@ -222,17 +222,24 @@ function App() {
   return (
     <div className="min-h-screen bg-linear-to-br from-slate-50 via-blue-50 to-indigo-100">
       <Toaster
-        position="top-right"
+        position="top-center"
         toastOptions={{
           duration: 3000,
-          style: { background: '#363636', color: '#fff' },
+          style: {
+            background: '#363636',
+            color: '#fff',
+            borderRadius: '12px',
+            fontSize: '14px',
+          },
           success: {
             duration: 3000,
             iconTheme: { primary: '#10b981', secondary: '#fff' },
+            style: { background: '#10b981' },
           },
           error: {
             duration: 4000,
             iconTheme: { primary: '#ef4444', secondary: '#fff' },
+            style: { background: '#ef4444' },
           },
         }}
       />
