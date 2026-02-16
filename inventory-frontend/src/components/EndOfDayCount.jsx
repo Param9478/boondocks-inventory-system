@@ -10,6 +10,8 @@ import {
   Check,
   Trash2,
   Search,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
 import { showSuccess, showError } from '../utils/toast';
 import axios from 'axios';
@@ -23,22 +25,22 @@ const EndOfDayCount = ({ onComplete }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [highlightedId, setHighlightedId] = useState(null);
   const scrollRefs = useRef({});
+  const [openCats, setOpenCats] = useState({
+    Freezer: true,
+    Cooler: true,
+    Sauces: true,
+  });
 
-  // ✅ ONLY 3 CATEGORIES - matches backend master list
   const categories = ['Freezer', 'Cooler', 'Sauces'];
 
   useEffect(() => {
     const fetchNightlyList = async () => {
       try {
         const res = await axios.get('/api/items/nightly-list');
-        const items = res.data.data;
-        setNightlyItems(items);
-
+        setNightlyItems(res.data.data);
         const initialCounts = {};
-        items.forEach((item) => {
-          if (item.quantity > 0) {
-            initialCounts[item._id] = item.quantity;
-          }
+        res.data.data.forEach((item) => {
+          if (item.quantity > 0) initialCounts[item._id] = item.quantity;
         });
         setCounts(initialCounts);
       } catch (err) {
@@ -52,6 +54,16 @@ const EndOfDayCount = ({ onComplete }) => {
     setCounts((prev) => ({ ...prev, [id]: value }));
   };
 
+  const toggleCat = (cat) => {
+    setOpenCats((prev) => ({ ...prev, [cat]: !prev[cat] }));
+  };
+
+  const handleAddClick = (e, cat) => {
+    e.stopPropagation();
+    setOpenCats((prev) => ({ ...prev, [cat]: true }));
+    setAddingToCategory(cat);
+  };
+
   const addNewInlineItem = (category) => {
     const nameTrimmed = newItemName.trim();
     if (!nameTrimmed) return;
@@ -63,6 +75,7 @@ const EndOfDayCount = ({ onComplete }) => {
     if (existing) {
       showError(`${nameTrimmed} already in list!`);
       setHighlightedId(existing._id);
+      setOpenCats((prev) => ({ ...prev, [existing.category]: true }));
       setSearchQuery('');
       setTimeout(() => {
         scrollRefs.current[existing._id]?.scrollIntoView({
@@ -76,15 +89,13 @@ const EndOfDayCount = ({ onComplete }) => {
       return;
     }
 
-    const newId = `temp-new-${Date.now()}-${nameTrimmed.toLowerCase().replace(/\s+/g, '-')}`;
     const newItem = {
-      _id: newId,
+      _id: `temp-${Date.now()}`,
       name: nameTrimmed,
-      category: category,
+      category,
       quantity: 0,
       isNew: true,
     };
-
     setNightlyItems((prev) => [...prev, newItem]);
     setNewItemName('');
     setAddingToCategory(null);
@@ -92,7 +103,7 @@ const EndOfDayCount = ({ onComplete }) => {
   };
 
   const deleteItem = (id) => {
-    setNightlyItems((prev) => prev.filter((item) => item._id !== id));
+    setNightlyItems((prev) => prev.filter((i) => i._id !== id));
     const newCounts = { ...counts };
     delete newCounts[id];
     setCounts(newCounts);
@@ -105,8 +116,8 @@ const EndOfDayCount = ({ onComplete }) => {
         const item = nightlyItems.find((i) => i._id === id);
         return {
           itemId: id,
-          name: item.name, // Naye items layi zaroori hai
-          category: item.category, // Naye items layi zaroori hai
+          name: item.name,
+          category: item.category,
           newQuantity: parseFloat(value),
         };
       });
@@ -118,13 +129,9 @@ const EndOfDayCount = ({ onComplete }) => {
 
     setLoading(true);
     try {
-      // 💡 Backend hun counts array expect karda hai
-      const res = await axios.post('/api/items/end-of-day-count', {
-        counts: updates,
-      });
-
+      await axios.post('/api/items/end-of-day-count', { counts: updates });
       showSuccess(`✅ Saved ${updates.length} items!`);
-      onComplete(); // Modal band kardo
+      onComplete();
     } catch (err) {
       showError(err.response?.data?.message || 'Failed to save');
     } finally {
@@ -132,185 +139,238 @@ const EndOfDayCount = ({ onComplete }) => {
     }
   };
 
+  const getCategoryIcon = (cat) => {
+    switch (cat) {
+      case 'Freezer':
+        return <ThermometerSnowflake className="h-4 w-4" />;
+      case 'Cooler':
+        return <Wind className="h-4 w-4" />;
+      case 'Sauces':
+        return <Droplets className="h-4 w-4" />;
+      default:
+        return null;
+    }
+  };
+
+  const getCategoryColor = (cat) => {
+    switch (cat) {
+      case 'Freezer':
+        return 'bg-blue-100 text-blue-600 border-blue-200';
+      case 'Cooler':
+        return 'bg-emerald-100 text-emerald-600 border-emerald-200';
+      case 'Sauces':
+        return 'bg-orange-100 text-orange-600 border-orange-200';
+      default:
+        return 'bg-gray-100 text-gray-600 border-gray-200';
+    }
+  };
+
   return (
-    <div className="fixed inset-0 bg-slate-50 z-50 overflow-y-auto">
-      <div className="sticky top-0 bg-slate-900 text-white p-4 sm:p-5 shadow-2xl z-20">
-        <div className="max-w-3xl mx-auto">
-          <div className="flex justify-between items-center mb-4">
-            <div className="flex items-center gap-3 sm:gap-4">
-              <div className="bg-indigo-600 p-2 rounded-lg">
-                <Moon size={20} className="sm:w-6 sm:h-6" />
-              </div>
-              <div>
-                <h1 className="text-xl sm:text-2xl font-black uppercase">
-                  Boondocks Nightly
-                </h1>
-                <p className="text-[10px] sm:text-xs text-slate-400 font-bold uppercase">
-                  Stock Inventory
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={onComplete}
-              className="p-2 hover:bg-white/10 rounded-full"
-            >
-              <X size={24} className="sm:w-7 sm:h-7" />
-            </button>
-          </div>
-
-          <div className="relative">
-            <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-              size={18}
-            />
-            <input
-              type="text"
-              placeholder="Search..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 sm:py-3 bg-slate-800 text-white rounded-xl border-2 border-slate-700 focus:border-indigo-500 outline-none text-sm sm:text-base"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
-              >
-                <X size={16} />
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-2xl mx-auto p-3 sm:p-6 pb-32">
-        {categories.map((cat) => (
-          <div key={cat} className="mb-6 sm:mb-8">
-            <div className="flex items-center justify-between mb-3 sm:mb-4 border-b-4 border-slate-900 pb-2 sm:pb-3">
-              <div className="flex items-center gap-2 sm:gap-3">
-                {cat === 'Freezer' && (
-                  <ThermometerSnowflake className="text-blue-600" size={20} />
-                )}
-                {cat === 'Cooler' && (
-                  <Wind className="text-emerald-600" size={20} />
-                )}
-                {cat === 'Sauces' && (
-                  <Droplets className="text-orange-600" size={20} />
-                )}
-                <h2 className="text-xl sm:text-3xl font-black uppercase text-slate-900">
-                  {cat}
-                </h2>
-              </div>
-
-              <button
-                onClick={() => setAddingToCategory(cat)}
-                className="flex items-center gap-1 bg-slate-900 text-white px-2 sm:px-3 py-1 rounded-lg text-xs font-bold hover:bg-indigo-600"
-              >
-                <Plus size={12} /> ADD
-              </button>
-            </div>
-
-            <div className="space-y-2 sm:space-y-3">
-              {addingToCategory === cat && (
-                <div className="bg-indigo-50 p-2 sm:p-3 rounded-xl border-2 border-dashed border-indigo-300 flex gap-2 sm:gap-3">
-                  <input
-                    autoFocus
-                    className="flex-1 p-2 rounded-lg outline-none font-bold text-sm"
-                    placeholder="Item name..."
-                    value={newItemName}
-                    onChange={(e) => setNewItemName(e.target.value)}
-                    onKeyDown={(e) =>
-                      e.key === 'Enter' && addNewInlineItem(cat)
-                    }
-                  />
-                  <button
-                    onClick={() => addNewInlineItem(cat)}
-                    className="bg-indigo-600 text-white p-2 rounded-lg"
-                  >
-                    <Check size={18} />
-                  </button>
-                  <button
-                    onClick={() => {
-                      setAddingToCategory(null);
-                      setNewItemName('');
-                    }}
-                    className="bg-slate-300 text-slate-700 p-2 rounded-lg"
-                  >
-                    <X size={18} />
-                  </button>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 overflow-y-auto">
+      <div className="min-h-full flex items-center justify-center p-3 sm:p-4">
+        <div className="w-full max-w-2xl bg-white rounded-2xl sm:rounded-3xl shadow-2xl my-8">
+          {/* Header */}
+          <div className="bg-linear-to-r from-purple-600 to-indigo-600 px-5 py-4 sm:px-6 sm:py-5 rounded-t-2xl sm:rounded-t-3xl">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-3">
+                <div className="bg-white/20 p-2 rounded-xl backdrop-blur-sm">
+                  <Moon className="h-5 w-5 text-white" />
                 </div>
-              )}
+                <div>
+                  <h1 className="text-lg sm:text-xl font-bold text-white">
+                    End of Day Count
+                  </h1>
+                  <p className="text-xs text-purple-100 mt-0.5">
+                    Nightly inventory check
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={onComplete}
+                className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+              >
+                <X className="h-5 w-5 text-white" />
+              </button>
+            </div>
 
-              {nightlyItems
-                .filter((item) => item.category === cat)
-                .filter(
-                  (item) =>
-                    searchQuery === '' ||
-                    item.name.toLowerCase().includes(searchQuery.toLowerCase()),
-                )
-                .map((item) => (
-                  <div
-                    key={item._id}
-                    ref={(el) => (scrollRefs.current[item._id] = el)}
-                    className={`bg-white px-3 py-3 sm:px-4 sm:py-4 rounded-xl shadow-sm border-2 flex justify-between items-center gap-2 transition-all duration-500 ${
-                      highlightedId === item._id
-                        ? 'border-orange-500 bg-orange-50 scale-105 shadow-lg animate-pulse'
-                        : 'border-slate-200 hover:border-indigo-300'
-                    }`}
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-purple-200" />
+              <input
+                type="text"
+                placeholder="Search items..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white placeholder:text-purple-200 outline-none focus:bg-white/20 focus:border-white/30 text-sm transition-all"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-purple-200 hover:text-white"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Categories */}
+          <div className="p-4 sm:p-6 space-y-3 max-h-[60vh] overflow-y-auto">
+            {categories.map((cat) => {
+              const itemsInCategory = nightlyItems
+                .filter((i) => i.category === cat)
+                .filter((i) =>
+                  i.name.toLowerCase().includes(searchQuery.toLowerCase()),
+                );
+
+              return (
+                <div
+                  key={cat}
+                  className="bg-gray-50 rounded-xl border border-gray-200 overflow-hidden"
+                >
+                  {/* Category Header */}
+                  <button
+                    onClick={() => toggleCat(cat)}
+                    className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-100 transition-colors"
                   >
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      {item.isNew && (
-                        <button
-                          onClick={() => deleteItem(item._id)}
-                          className="text-slate-300 hover:text-red-500 shrink-0"
-                          title="Remove"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      )}
-                      <div className="flex flex-col min-w-0 flex-1">
-                        <span className="font-bold text-slate-700 text-sm uppercase truncate">
-                          {item.name}
-                        </span>
-                        <span className="text-[9px] text-slate-400 font-bold uppercase">
-                          {item.quantity}
-                        </span>
+                    <div className="flex items-center space-x-3">
+                      <div
+                        className={`p-2 rounded-lg ${getCategoryColor(cat)}`}
+                      >
+                        {getCategoryIcon(cat)}
+                      </div>
+                      <div className="text-left">
+                        <h3 className="text-sm font-bold text-gray-900">
+                          {cat}
+                        </h3>
+                        <p className="text-xs text-gray-500">
+                          {itemsInCategory.length} items
+                        </p>
                       </div>
                     </div>
-                    <input
-                      type="number"
-                      step="0.01"
-                      inputMode="decimal"
-                      value={
-                        counts[item._id] !== undefined ? counts[item._id] : ''
-                      }
-                      onChange={(e) =>
-                        handleInputChange(item._id, e.target.value)
-                      }
-                      className="w-16 sm:w-24 p-2 bg-slate-50 border-2 border-slate-200 rounded-lg text-right font-black text-indigo-600 text-lg focus:border-indigo-600 focus:bg-white outline-none shrink-0"
-                    />
-                  </div>
-                ))}
-            </div>
-          </div>
-        ))}
-      </div>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={(e) => handleAddClick(e, cat)}
+                        className="px-2.5 py-1.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 rounded-lg text-xs font-semibold transition-colors flex items-center space-x-1"
+                      >
+                        <Plus className="h-3 w-3" />
+                        <span>Add</span>
+                      </button>
+                      {openCats[cat] ? (
+                        <ChevronDown className="h-5 w-5 text-gray-400" />
+                      ) : (
+                        <ChevronRight className="h-5 w-5 text-gray-400" />
+                      )}
+                    </div>
+                  </button>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-slate-100 p-4 sm:p-6 shadow-2xl z-20">
-        <div className="max-w-2xl mx-auto">
-          <button
-            onClick={handleSubmitAll}
-            disabled={loading}
-            className="w-full py-4 bg-indigo-600 text-white font-black rounded-2xl shadow-xl flex justify-center items-center gap-2 uppercase tracking-wider text-sm hover:bg-indigo-700 disabled:opacity-50"
-          >
-            {loading ? (
-              'Saving...'
-            ) : (
-              <>
-                <Save size={18} />
-                <span>Save Inventory</span>
-              </>
-            )}
-          </button>
+                  {/* Category Items */}
+                  {openCats[cat] && (
+                    <div className="px-4 pb-3 space-y-2">
+                      {/* Add New Item Form */}
+                      {addingToCategory === cat && (
+                        <div className="bg-indigo-50 border-2 border-dashed border-indigo-300 rounded-lg p-2 flex items-center space-x-2">
+                          <input
+                            autoFocus
+                            type="text"
+                            placeholder="Item name..."
+                            value={newItemName}
+                            onChange={(e) => setNewItemName(e.target.value)}
+                            onKeyDown={(e) =>
+                              e.key === 'Enter' && addNewInlineItem(cat)
+                            }
+                            className="flex-1 px-3 py-2 bg-white border border-indigo-200 rounded-lg text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-500"
+                          />
+                          <button
+                            onClick={() => addNewInlineItem(cat)}
+                            className="p-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                          >
+                            <Check className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setAddingToCategory(null);
+                              setNewItemName('');
+                            }}
+                            className="p-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Items List */}
+                      {itemsInCategory.map((item) => (
+                        <div
+                          key={item._id}
+                          ref={(el) => (scrollRefs.current[item._id] = el)}
+                          className={`bg-white rounded-lg p-3 border-2 transition-all ${
+                            highlightedId === item._id
+                              ? 'border-orange-500 bg-orange-50 shadow-lg'
+                              : 'border-gray-200'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-2 flex-1 min-w-0">
+                              {item.isNew && (
+                                <button
+                                  onClick={() => deleteItem(item._id)}
+                                  className="text-gray-300 hover:text-red-500 transition-colors"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              )}
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-bold text-gray-900 truncate">
+                                  {item.name}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  Current: {item.quantity}
+                                </p>
+                              </div>
+                            </div>
+                            <input
+                              type="number"
+                              step="0.01"
+                              inputMode="decimal"
+                              value={
+                                counts[item._id] !== undefined
+                                  ? counts[item._id]
+                                  : ''
+                              }
+                              onChange={(e) =>
+                                handleInputChange(item._id, e.target.value)
+                              }
+                              placeholder="0"
+                              className="w-20 sm:w-24 px-3 py-2 bg-gray-50 border-2 border-gray-200 rounded-lg text-center font-bold text-indigo-600 text-sm focus:border-indigo-500 focus:bg-white outline-none transition-all"
+                            />
+                          </div>
+                        </div>
+                      ))}
+
+                      {itemsInCategory.length === 0 && !addingToCategory && (
+                        <p className="text-center py-4 text-sm text-gray-400">
+                          No items in this category
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Footer */}
+          <div className="px-4 sm:px-6 py-4 bg-gray-50 border-t border-gray-200 rounded-b-2xl sm:rounded-b-3xl">
+            <button
+              onClick={handleSubmitAll}
+              disabled={loading}
+              className="w-full py-3 bg-linear-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold rounded-xl transition-all flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+            >
+              <Save className="h-4 w-4" />
+              <span>{loading ? 'Saving...' : 'Save Inventory'}</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
