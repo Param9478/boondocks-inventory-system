@@ -11,7 +11,9 @@ import QuickActions from './components/QuickActions';
 import { showSuccess, showError } from './utils/toast';
 import EndOfDayCount from './components/Endofdaycount';
 
-axios.defaults.baseURL = 'http://localhost:3002';
+const API_URL =
+  import.meta.env.VITE_API_URL || 'https://boondocks-api.onrender.com';
+axios.defaults.baseURL = API_URL;
 
 function App() {
   const [items, setItems] = useState([]);
@@ -218,7 +220,7 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-linear-to-br from-slate-50 via-blue-50 to-indigo-100">
       <Toaster
         position="top-right"
         toastOptions={{
@@ -237,7 +239,7 @@ function App() {
 
       <Header onAddClick={() => setIsModalOpen(true)} items={items} />
 
-      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-400 mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Dashboard stats={stats} />
 
         <QuickActions
