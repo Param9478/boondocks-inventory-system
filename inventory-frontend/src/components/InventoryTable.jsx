@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import Swal from 'sweetalert2'; // ✅ SweetAlert2 Import
 import {
   AlertTriangle,
   CheckCircle,
@@ -11,6 +10,7 @@ import {
   Clock,
   ChevronRight,
 } from 'lucide-react';
+import Swal from 'sweetalert2';
 
 // --- MOBILE CARD COMPONENT ---
 const MobileCard = ({
@@ -25,7 +25,7 @@ const MobileCard = ({
   startEdit,
   saveEdit,
   cancelEdit,
-  handleDelete, // ✅ Swal wala delete pass kita
+  onDelete,
   getStatusBadge,
   isExpiringSoon,
 }) => {
@@ -41,6 +41,45 @@ const MobileCard = ({
     }
   };
 
+ const handleDelete = async () => {
+    const result = await Swal.fire({
+      title: 'Delete Item?',
+      html: `Are you sure you want to delete<br/><strong>${item.name}</strong>?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, Delete',
+      cancelButtonText: 'Cancel',
+      width: '280px', // Thoda compact karta mobile layi
+      customClass: {
+        popup: 'rounded-2xl nano-popup',
+        confirmButton: 'rounded-lg px-4 py-2 text-sm font-semibold',
+        cancelButton: 'rounded-lg px-4 py-2 text-sm font-semibold',
+        title: 'nano-title',
+        htmlContainer: 'nano-text'
+      },
+      // ✅ Aithe kita jadu: pehla hi icon chotta te animation band
+      didOpen: () => {
+        const style = document.createElement('style');
+        style.innerHTML = `
+          .swal2-icon { 
+            animation: none !important; 
+            transform: scale(0.5) !important; 
+            margin: -10px auto !important; 
+          }
+          .nano-title { font-size: 16px !important; padding-top: 10px !important; }
+          .nano-text { font-size: 13px !important; }
+        `;
+        document.head.appendChild(style);
+      },
+      buttonsStyling: true,
+    });
+
+    if (result.isConfirmed) {
+      onDelete(item._id);
+    }
+  };
   return (
     <div
       ref={(el) => (rowRefs.current[item._id] = el)}
@@ -65,7 +104,7 @@ const MobileCard = ({
                 onChange={(e) =>
                   setEditData((prev) => ({ ...prev, name: e.target.value }))
                 }
-                className="w-full px-2 py-1 text-sm font-semibold border-2 border-indigo-300 rounded-lg focus:outline-none"
+                className="w-full px-2 py-1 text-sm font-semibold border-2 border-indigo-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 autoComplete="off"
               />
             ) : (
@@ -101,7 +140,8 @@ const MobileCard = ({
                     quantity: e.target.value,
                   }))
                 }
-                className="w-full mt-1 px-2 py-1 text-sm border-2 border-indigo-300 rounded-lg"
+                className="w-full mt-1 px-2 py-1 text-sm border-2 border-indigo-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                autoComplete="off"
               />
             ) : (
               <p className="font-semibold text-gray-900 text-sm">
@@ -122,7 +162,8 @@ const MobileCard = ({
                     minStock: e.target.value,
                   }))
                 }
-                className="w-full mt-1 px-2 py-1 text-sm border-2 border-indigo-300 rounded-lg"
+                className="w-full mt-1 px-2 py-1 text-sm border-2 border-indigo-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                autoComplete="off"
               />
             ) : (
               <p className="font-semibold text-gray-900 text-sm">
@@ -148,8 +189,21 @@ const MobileCard = ({
             </div>
             <div>
               <p className="text-gray-500 mb-1">Supplier</p>
-              <p className="font-semibold text-gray-900">{item.supplier}</p>
+              <p className="font-semibold text-gray-900">
+                {item.supplier || '-'}
+              </p>
             </div>
+            {item.expiryDate && (
+              <div>
+                <p className="text-gray-500 mb-1">Expiry</p>
+                <p
+                  className={`font-semibold ${isExpiringSoon(item.expiryDate) ? 'text-orange-600' : 'text-gray-900'}`}
+                >
+                  {new Date(item.expiryDate).toLocaleDateString()}
+                  {isExpiringSoon(item.expiryDate) && ' ⚠️'}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -163,7 +217,7 @@ const MobileCard = ({
               onChange={(e) =>
                 setEditData((prev) => ({ ...prev, category: e.target.value }))
               }
-              className="w-full px-2 py-1.5 text-sm border-2 border-indigo-300 rounded-lg"
+              className="w-full px-2 py-1.5 text-sm border-2 border-indigo-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               {[
                 'Freezer',
@@ -190,6 +244,7 @@ const MobileCard = ({
             <input
               type="number"
               step="0.01"
+              placeholder="0.00"
               value={editData.costPerUnit || ''}
               onChange={(e) =>
                 setEditData((prev) => ({
@@ -197,8 +252,33 @@ const MobileCard = ({
                   costPerUnit: e.target.value,
                 }))
               }
-              className="w-full px-2 py-1.5 text-sm border-2 border-indigo-300 rounded-lg"
+              className="w-full px-2 py-1.5 text-sm border-2 border-indigo-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              autoComplete="off"
             />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">Supplier</label>
+            <select
+              value={editData.supplier || ''}
+              onChange={(e) =>
+                setEditData((prev) => ({ ...prev, supplier: e.target.value }))
+              }
+              className="w-full px-2 py-1.5 text-sm border-2 border-indigo-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              {[
+                'Sysco',
+                'Saputo',
+                'GFS',
+                'US Foods',
+                'Local Farm',
+                'Costco',
+                'Other',
+              ].map((sup) => (
+                <option key={sup} value={sup}>
+                  {sup}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
       )}
@@ -208,13 +288,15 @@ const MobileCard = ({
           <>
             <button
               onClick={() => saveEdit(item._id)}
-              className="p-2 text-green-600 active:scale-90"
+              className="p-2 text-green-600 hover:bg-green-50 rounded-full transition-all active:scale-90"
+              title="Save"
             >
               <Save className="h-5 w-5" />
             </button>
             <button
               onClick={cancelEdit}
-              className="p-2 text-gray-500 active:scale-90"
+              className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-all active:scale-90"
+              title="Cancel"
             >
               <X className="h-5 w-5" />
             </button>
@@ -223,13 +305,15 @@ const MobileCard = ({
           <>
             <button
               onClick={() => startEdit(item)}
-              className="p-2 text-indigo-500 active:scale-90"
+              className="p-2 text-indigo-500 hover:bg-indigo-50 rounded-full transition-all active:scale-90"
+              title="Edit"
             >
               <Edit2 className="h-5 w-5" />
             </button>
             <button
-              onClick={() => handleDelete(item)}
-              className="p-2 text-red-500 active:scale-90"
+              onClick={handleDelete}
+              className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-all active:scale-90"
+              title="Delete"
             >
               <Trash2 className="h-5 w-5" />
             </button>
@@ -264,71 +348,6 @@ const InventoryTable = ({
     }
   }, [highlightedItemId]);
 
-  const handleDelete = (item) => {
-    Swal.fire({
-      title: 'Delete Item?',
-      text: `Confirm for "${item.name}"?`,
-      icon: 'warning',
-      iconColor: '#ef4444',
-      showCancelButton: true,
-      confirmButtonColor: '#ef4444',
-      confirmButtonText: 'Delete',
-      cancelButtonText: 'No',
-      reverseButtons: true,
-      width: '260px',
-      padding: '0.8rem',
-      borderRadius: '1rem',
-      customClass: {
-        icon: 'nano-icon',
-        title: 'nano-title',
-        htmlContainer: 'nano-text',
-        confirmButton: 'nano-btn',
-        cancelButton: 'nano-btn',
-      },
-      // ✅ CSS pehla hi inject karti taaki animation glitch na kare
-      didOpen: () => {
-        const style = document.createElement('style');
-        style.innerHTML = `
-          .swal2-icon { 
-            animation: none !important; 
-            transform: scale(0.4) !important; 
-            margin: -15px auto !important; 
-          }
-          .nano-title { font-size: 14px !important; font-weight: 700 !important; }
-          .nano-text { font-size: 11px !important; margin-top: 4px !important; }
-          .nano-btn { font-size: 11px !important; padding: 6px 14px !important; }
-        `;
-        document.head.appendChild(style);
-      },
-    }).then((result) => {
-      if (result.isConfirmed) {
-        onDelete(item._id);
-      }
-    });
-  };
-
-  const saveEdit = async (id) => {
-    const originalItem = editData._originalItem;
-    const cleanData = {};
-
-    if (editData.name !== originalItem.name) cleanData.name = editData.name;
-
-    if (editData.quantity !== '')
-      cleanData.quantity = Math.round(parseFloat(editData.quantity));
-
-    if (editData.minStock !== '')
-      cleanData.minStock = Math.round(parseFloat(editData.minStock));
-
-    if (editData.costPerUnit !== '')
-      cleanData.costPerUnit = parseFloat(editData.costPerUnit);
-
-    if (editData.category !== '') cleanData.category = editData.category;
-    if (editData.supplier !== '') cleanData.supplier = editData.supplier;
-
-    const success = await onUpdate(id, cleanData);
-    if (success) cancelEdit();
-  };
-
   const startEdit = (item) => {
     setEditingId(item._id);
     setExpandedItemId(null);
@@ -349,46 +368,123 @@ const InventoryTable = ({
     setEditData({});
   };
 
+  const saveEdit = async (id) => {
+    const originalItem = editData._originalItem;
+    const cleanData = {};
+
+    if (editData.name && editData.name !== originalItem.name) {
+      cleanData.name = editData.name;
+    }
+    if (editData.quantity !== '' && editData.quantity !== undefined) {
+      cleanData.quantity = parseFloat(editData.quantity);
+    }
+    if (editData.minStock !== '' && editData.minStock !== undefined) {
+      cleanData.minStock = parseFloat(editData.minStock);
+    }
+    if (editData.costPerUnit !== '' && editData.costPerUnit !== undefined) {
+      cleanData.costPerUnit = parseFloat(editData.costPerUnit);
+    }
+    if (editData.category && editData.category !== '') {
+      cleanData.category = editData.category;
+    }
+    if (editData.supplier && editData.supplier !== '') {
+      cleanData.supplier = editData.supplier;
+    }
+
+    const success = await onUpdate(id, cleanData);
+    if (success) {
+      cancelEdit();
+    }
+  };
+
   const getStatusBadge = (item) => {
     const isLow = item.quantity <= item.minStock;
     const percentage = (item.quantity / item.minStock) * 100;
-    if (isLow)
+
+    if (isLow) {
       return (
-        <span className="inline-flex items-center px-2 py-1 rounded-full text-[10px] bg-red-100 text-red-700 font-bold">
-          <AlertTriangle className="h-3 w-3 mr-1" /> Critical
+        <span className="inline-flex items-center px-2 py-1 rounded-full text-[10px] sm:text-xs font-semibold bg-red-100 text-red-700">
+          <AlertTriangle className="h-3 w-3 mr-1" />
+          Critical
         </span>
       );
-    if (percentage <= 150)
+    }
+    if (percentage <= 150) {
       return (
-        <span className="inline-flex items-center px-2 py-1 rounded-full text-[10px] bg-yellow-100 text-yellow-700 font-bold">
-          <Clock className="h-3 w-3 mr-1" /> Low
+        <span className="inline-flex items-center px-2 py-1 rounded-full text-[10px] sm:text-xs font-semibold bg-yellow-100 text-yellow-700">
+          <Clock className="h-3 w-3 mr-1" />
+          Low
         </span>
       );
+    }
     return (
-      <span className="inline-flex items-center px-2 py-1 rounded-full text-[10px] bg-green-100 text-green-700 font-bold">
-        <CheckCircle className="h-3 w-3 mr-1" /> Stable
+      <span className="inline-flex items-center px-2 py-1 rounded-full text-[10px] sm:text-xs font-semibold bg-green-100 text-green-700">
+        <CheckCircle className="h-3 w-3 mr-1" />
+        Stable
       </span>
     );
   };
 
   const isExpiringSoon = (expiryDate) => {
     if (!expiryDate) return false;
-    const weekFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const now = new Date();
+    const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
     const expiry = new Date(expiryDate);
-    return expiry <= weekFromNow && expiry >= new Date();
+    return expiry <= weekFromNow && expiry >= now;
   };
 
-  if (loading && items.length === 0)
+  const handleDesktopDelete = async (item) => {
+    const result = await Swal.fire({
+      title: 'Delete Item?',
+      html: `Are you sure you want to delete<br/><strong>${item.name}</strong>?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, Delete',
+      cancelButtonText: 'Cancel',
+      customClass: {
+        popup: 'rounded-2xl',
+        confirmButton: 'rounded-lg px-6 py-2.5 font-semibold',
+        cancelButton: 'rounded-lg px-6 py-2.5 font-semibold',
+      },
+      buttonsStyling: true,
+    });
+
+    if (result.isConfirmed) {
+      onDelete(item._id);
+    }
+  };
+
+  if (loading && items.length === 0) {
     return (
-      <div className="text-center p-12">
-        <Package className="h-16 w-16 text-gray-300 mx-auto animate-pulse" />
-        <p className="text-gray-500 mt-4 text-sm">Loading...</p>
+      <div className="bg-white rounded-xl sm:rounded-2xl shadow-md p-8 sm:p-12 text-center border border-gray-100">
+        <Package className="h-12 w-12 sm:h-16 sm:w-16 text-gray-300 mx-auto mb-4 animate-pulse" />
+        <p className="text-gray-500 font-medium text-sm sm:text-base">
+          Loading inventory...
+        </p>
       </div>
     );
+  }
+
+  if (items.length === 0) {
+    return (
+      <div className="bg-white rounded-xl sm:rounded-2xl shadow-md p-8 sm:p-12 text-center border border-gray-100">
+        <Package className="h-12 w-12 sm:h-16 sm:w-16 text-gray-300 mx-auto mb-4" />
+        <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">
+          No Items Found
+        </h3>
+        <p className="text-sm sm:text-base text-gray-500">
+          Add your first inventory item to get started
+        </p>
+      </div>
+    );
+  }
 
   return (
     <>
-      <div className="lg:hidden space-y-2 px-2">
+      {/* Mobile Card List */}
+      <div className="lg:hidden space-y-2">
         {items.map((item) => (
           <MobileCard
             key={item._id}
@@ -403,30 +499,50 @@ const InventoryTable = ({
             startEdit={startEdit}
             saveEdit={saveEdit}
             cancelEdit={cancelEdit}
-            handleDelete={handleDelete} // ✅ Passed here
+            onDelete={onDelete}
             getStatusBadge={getStatusBadge}
             isExpiringSoon={isExpiringSoon}
           />
         ))}
       </div>
 
+      {/* Desktop Table View */}
       <div className="hidden lg:block bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
-        <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="text-xl font-bold">
+        <div className="px-6 py-5 border-b border-gray-100">
+          <h2 className="text-xl font-bold text-gray-900">
             Inventory Items ({items.length})
           </h2>
         </div>
+
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50">
+            <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase">
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
                   Item
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase">
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                  Category
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
                   Stock
                 </th>
-                <th className="px-6 py-4 text-right text-xs font-bold text-gray-700 uppercase">
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                  Min Level
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                  Cost/Unit
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                  Total Value
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                  Supplier
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-6 py-4 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
@@ -434,59 +550,223 @@ const InventoryTable = ({
             <tbody className="divide-y divide-gray-100">
               {items.map((item) => {
                 const isEditing = editingId === item._id;
+                const totalValue = (
+                  item.quantity * (item.costPerUnit || 0)
+                ).toFixed(2);
+                const isLowStock = item.quantity <= item.minStock;
+                const isHighlighted = highlightedItemId === item._id;
+                const rowClass = isHighlighted
+                  ? 'bg-orange-100 border-2 border-orange-500 scale-105 shadow-xl'
+                  : isLowStock
+                    ? 'bg-red-50/50'
+                    : '';
+
                 return (
                   <tr
                     key={item._id}
                     ref={(el) => (rowRefs.current[item._id] = el)}
-                    className={`hover:bg-gray-50 transition-all ${highlightedItemId === item._id ? 'bg-orange-50' : ''}`}
+                    className={`hover:bg-gray-50 transition-all duration-500 ${rowClass}`}
                   >
                     <td className="px-6 py-4">
+                      <div className="flex flex-col">
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            value={editData.name || ''}
+                            onChange={(e) =>
+                              setEditData((prev) => ({
+                                ...prev,
+                                name: e.target.value,
+                              }))
+                            }
+                            className="w-full px-3 py-1.5 border-2 border-indigo-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            autoComplete="off"
+                          />
+                        ) : (
+                          <span className="font-semibold text-gray-900">
+                            {item.name}
+                          </span>
+                        )}
+                        {item.expiryDate && (
+                          <span
+                            className={`text-xs mt-1 ${isExpiringSoon(item.expiryDate) ? 'text-orange-600 font-semibold' : 'text-gray-500'}`}
+                          >
+                            Exp:{' '}
+                            {new Date(item.expiryDate).toLocaleDateString()}
+                            {isExpiringSoon(item.expiryDate) && ' ⚠️'}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
                       {isEditing ? (
-                        <input
-                          type="text"
-                          value={editData.name || ''}
+                        <select
+                          value={editData.category || ''}
                           onChange={(e) =>
-                            setEditData((p) => ({ ...p, name: e.target.value }))
+                            setEditData((prev) => ({
+                              ...prev,
+                              category: e.target.value,
+                            }))
                           }
-                          className="px-2 py-1 border rounded w-full text-sm"
-                        />
+                          className="w-full px-3 py-1.5 border-2 border-indigo-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        >
+                          {[
+                            'Freezer',
+                            'Cooler',
+                            'Sauces',
+                            'Dry Goods',
+                            'Produce',
+                            'Meat',
+                            'Dairy',
+                            'Frozen',
+                            'Beverages',
+                            'Other',
+                          ].map((c) => (
+                            <option key={c} value={c}>
+                              {c}
+                            </option>
+                          ))}
+                        </select>
                       ) : (
-                        <span className="font-semibold text-sm">
-                          {item.name}
+                        <span className="inline-flex px-3 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700">
+                          {item.category || 'N/A'}
                         </span>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-sm">
-                      {item.quantity} {item.unit}
+                    <td className="px-6 py-4">
+                      {isEditing ? (
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={editData.quantity || ''}
+                          onChange={(e) =>
+                            setEditData((prev) => ({
+                              ...prev,
+                              quantity: e.target.value,
+                            }))
+                          }
+                          className="w-24 px-3 py-1.5 border-2 border-indigo-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          autoComplete="off"
+                        />
+                      ) : (
+                        <span className="font-semibold text-gray-900">
+                          {item.quantity} {item.unit}
+                        </span>
+                      )}
                     </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex justify-end space-x-2">
+                    <td className="px-6 py-4">
+                      {isEditing ? (
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={editData.minStock || ''}
+                          onChange={(e) =>
+                            setEditData((prev) => ({
+                              ...prev,
+                              minStock: e.target.value,
+                            }))
+                          }
+                          className="w-24 px-3 py-1.5 border-2 border-indigo-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          autoComplete="off"
+                        />
+                      ) : (
+                        <span className="text-gray-600">
+                          {item.minStock} {item.unit}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      {isEditing ? (
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={editData.costPerUnit || ''}
+                          onChange={(e) =>
+                            setEditData((prev) => ({
+                              ...prev,
+                              costPerUnit: e.target.value,
+                            }))
+                          }
+                          className="w-24 px-3 py-1.5 border-2 border-indigo-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          placeholder="0.00"
+                          autoComplete="off"
+                        />
+                      ) : (
+                        <span className="text-gray-600">
+                          {item.costPerUnit ? `$${item.costPerUnit}` : '-'}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="font-bold text-green-600">
+                        ${totalValue}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      {isEditing ? (
+                        <select
+                          value={editData.supplier || ''}
+                          onChange={(e) =>
+                            setEditData((prev) => ({
+                              ...prev,
+                              supplier: e.target.value,
+                            }))
+                          }
+                          className="w-full px-3 py-1.5 border-2 border-indigo-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        >
+                          {[
+                            'Sysco',
+                            'Saputo',
+                            'GFS',
+                            'US Foods',
+                            'Local Farm',
+                            'Costco',
+                            'Other',
+                          ].map((s) => (
+                            <option key={s} value={s}>
+                              {s}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className="text-sm text-gray-600">
+                          {item.supplier || '-'}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">{getStatusBadge(item)}</td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center justify-end space-x-2">
                         {isEditing ? (
                           <>
                             <button
                               onClick={() => saveEdit(item._id)}
-                              className="p-1 text-green-600"
+                              className="p-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors"
+                              title="Save"
                             >
-                              <Save className="h-5 w-5" />
+                              <Save className="h-4 w-4" />
                             </button>
                             <button
                               onClick={cancelEdit}
-                              className="p-1 text-gray-400"
+                              className="p-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                              title="Cancel"
                             >
-                              <X className="h-5 w-5" />
+                              <X className="h-4 w-4" />
                             </button>
                           </>
                         ) : (
                           <>
                             <button
                               onClick={() => startEdit(item)}
-                              className="p-1 text-indigo-600"
+                              className="p-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+                              title="Edit"
                             >
                               <Edit2 className="h-4 w-4" />
                             </button>
                             <button
-                              onClick={() => handleDelete(item)}
-                              className="p-1 text-red-500"
+                              onClick={() => handleDesktopDelete(item)}
+                              className="p-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
+                              title="Delete"
                             >
                               <Trash2 className="h-4 w-4" />
                             </button>
