@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChefHat, Bell, LogOut, User } from 'lucide-react';
+import { ChefHat, Bell, LogOut, User, Shield } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import NotificationDropDown from './Notificationdropdown';
 
-const Header = ({ items = [] }) => {
+const Header = ({ items = [], currentView, setCurrentView, isAdmin }) => {
   const { user, logout } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
@@ -11,11 +11,9 @@ const Header = ({ items = [] }) => {
   const bellRef = useRef(null);
   const userMenuRef = useRef(null);
 
-  // Generate notifications based on inventory status
   useEffect(() => {
     const newNotifications = [];
 
-    // Check for low stock items
     const lowStockItems = items.filter(
       (item) => item.quantity <= item.minStock,
     );
@@ -41,7 +39,6 @@ const Header = ({ items = [] }) => {
       }
     });
 
-    // Check for expiring items
     const expiringItems = items.filter((item) => {
       if (!item.expiryDate) return false;
       const now = new Date();
@@ -65,7 +62,6 @@ const Header = ({ items = [] }) => {
     setNotifications(newNotifications);
   }, [items]);
 
-  // Close user menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
@@ -86,7 +82,10 @@ const Header = ({ items = [] }) => {
         <div className="flex items-center justify-between h-16 sm:h-20">
           {/* Logo & Title Section */}
           <div
-            onClick={() => (window.location.href = '/')}
+            onClick={() => {
+              setCurrentView('inventory');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
             className="flex items-center space-x-3 min-w-0 flex-1 cursor-pointer hover:opacity-90 active:scale-95 transition-all"
             title="Go to Home"
           >
@@ -105,6 +104,27 @@ const Header = ({ items = [] }) => {
 
           {/* Actions Section */}
           <div className="flex items-center gap-2 shrink-0 ml-4">
+            {/* Admin Panel Button (Only for Admins) */}
+            {isAdmin && (
+              <button
+                onClick={() =>
+                  setCurrentView(
+                    currentView === 'admin' ? 'inventory' : 'admin',
+                  )
+                }
+                className={`flex items-center gap-2 px-3 py-2 rounded-xl border border-white/30 transition-all ${
+                  currentView === 'admin'
+                    ? 'bg-white/30 backdrop-blur-lg'
+                    : 'bg-white/20 backdrop-blur-lg hover:bg-white/30'
+                }`}
+              >
+                <Shield className="h-4 w-4 text-white" />
+                <span className="text-white text-sm font-medium hidden sm:block">
+                  {currentView === 'admin' ? 'Inventory' : 'Admin'}
+                </span>
+              </button>
+            )}
+
             {/* Notification Bell */}
             <div className="relative flex items-center justify-center">
               <button
@@ -117,7 +137,7 @@ const Header = ({ items = [] }) => {
               >
                 <Bell className="h-5 w-5 text-white" />
                 {notifications.length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full h-5 w-5 flex items-center justify-center border-2 border-indigo-600">
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full h-5 w-5 flex items-center justify-center border border-white">
                     {notifications.length}
                   </span>
                 )}
@@ -144,18 +164,28 @@ const Header = ({ items = [] }) => {
                 <span className="text-white text-sm font-medium hidden sm:block">
                   {user?.name?.split(' ')[0] || 'User'}
                 </span>
+                {user?.role === 'admin' && (
+                  <Shield className="h-3 w-3 text-yellow-300" />
+                )}
               </button>
 
-              {/* Dropdown Menu */}
               {showUserMenu && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden animate-dropdown">
-                  <div className="px-4 py-3 border-b border-gray-100">
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden animate-dropdown">
+                  <div className="px-4 py-3 border-b border-gray-100 bg-linear-to-r from-indigo-50 to-purple-50">
                     <p className="text-sm font-semibold text-gray-900 truncate">
                       {user?.name}
                     </p>
                     <p className="text-xs text-gray-500 truncate">
                       {user?.email}
                     </p>
+                    {user?.role === 'admin' && (
+                      <div className="flex items-center gap-1 mt-2">
+                        <Shield className="h-3 w-3 text-purple-600" />
+                        <span className="text-xs font-medium text-purple-600">
+                          Administrator
+                        </span>
+                      </div>
+                    )}
                   </div>
                   <button
                     onClick={() => {

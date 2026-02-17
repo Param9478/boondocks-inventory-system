@@ -5,6 +5,7 @@ require('dotenv').config();
 
 const authRoutes = require('./routes/Auth');
 const itemRoutes = require('./routes/Item');
+const adminRoutes = require('./routes/Admin');
 const authMiddleware = require('./middleware/auth');
 
 const app = express();
@@ -26,10 +27,11 @@ mongoose
 app.get('/', (req, res) => {
   res.json({
     message: 'Boondocks Inventory API',
-    version: '1.0.0',
+    version: '2.0.0',
     endpoints: {
       auth: '/api/auth',
       items: '/api/items (protected)',
+      admin: '/api/admin (admin only)',
     },
   });
 });
@@ -39,6 +41,9 @@ app.use('/api/auth', authRoutes);
 
 // Item routes (protected with authentication)
 app.use('/api/items', authMiddleware, itemRoutes);
+
+// Admin routes (protected - admin only)
+app.use('/api/admin', adminRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -72,6 +77,12 @@ app.listen(PORT, () => {
   console.log(`   POST   /api/items`);
   console.log(`   PUT    /api/items/:id`);
   console.log(`   DELETE /api/items/:id`);
+  console.log(`👑 Admin endpoints (admin only):`);
+  console.log(`   GET    /api/admin/users`);
+  console.log(`   PUT    /api/admin/users/:id`);
+  console.log(`   DELETE /api/admin/users/:id`);
+  console.log(`   GET    /api/admin/activity-logs`);
+  console.log(`   GET    /api/admin/stats`);
 });
 
 module.exports = app;

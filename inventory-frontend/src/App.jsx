@@ -11,6 +11,7 @@ import InventoryTable from './components/InventoryTable';
 import FilterBar from './components/FilterBar';
 import Analytics from './components/Analytics';
 import QuickActions from './components/QuickActions';
+import AdminPanel from './components/AdminPanel';
 import { showSuccess, showError } from './utils/toast';
 import EndOfDayCount from './components/EndOfDayCount';
 
@@ -19,7 +20,8 @@ axios.defaults.baseURL = API_URL;
 
 function MainApp() {
   const { user, loading: authLoading } = useAuth();
-  const [authView, setAuthView] = useState('login'); // 'login' or 'signup'
+  const [authView, setAuthView] = useState('login');
+  const [currentView, setCurrentView] = useState('inventory');
   const [items, setItems] = useState([]);
   const [filteredItems, setFilteredItems] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -31,32 +33,57 @@ function MainApp() {
   const [showEndOfDay, setShowEndOfDay] = useState(false);
   const [highlightedItemId, setHighlightedItemId] = useState(null);
 
-  // ✅ Reset to login page when user logs out
+  // Reset to login when logged out
   useEffect(() => {
     if (!user && !authLoading) {
       setAuthView('login');
     }
   }, [user, authLoading]);
 
+  // ✅ Fetch items only when user is set AND not loading
   const fetchItems = useCallback(async () => {
-    if (!user) return;
+    // Don't fetch if no user or still loading auth
+    if (!user || authLoading) {
+      console.log(
+        '⏸️ Skipping fetch - user:',
+        !!user,
+        'authLoading:',
+        authLoading,
+      );
+      return;
+    }
 
     try {
       setLoading(true);
+      console.log(
+        '📦 Fetching items with token:',
+        !!axios.defaults.headers.common['Authorization'],
+      );
       const res = await axios.get('/api/items');
       const allItems = res.data.data || res.data;
+      console.log('✅ Items fetched:', allItems.length);
       setItems(allItems);
     } catch (err) {
-      console.error('Fetch error:', err);
-      showError('Failed to fetch inventory');
+      console.error('❌ Fetch error:', err.response?.data || err.message);
+      // Only show error if it's not an auth issue
+      if (err.response?.status !== 401) {
+        showError('Failed to fetch inventory');
+      }
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, authLoading]);
 
+  // ✅ Only fetch when user changes AND auth is done loading
   useEffect(() => {
-    fetchItems();
-  }, [fetchItems]);
+    if (currentView === 'inventory' && user && !authLoading) {
+      // Small delay to ensure token is set
+      const timer = setTimeout(() => {
+        fetchItems();
+      }, 200);
+      return () => clearTimeout(timer);
+    }
+  }, [user, authLoading, currentView, fetchItems]);
 
   useEffect(() => {
     let result = [...items];
@@ -176,10 +203,9 @@ function MainApp() {
     }).length,
   };
 
-  // Show loading while checking auth
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-indigo-900 flex items-center justify-center">
+      <div className="min-h-screen bg-linear-to-br from-slate-900 via-purple-900 to-indigo-900 flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block h-12 w-12 border-4 border-white/30 border-t-white rounded-full animate-spin mb-4"></div>
           <p className="text-white text-lg">Loading...</p>
@@ -188,7 +214,6 @@ function MainApp() {
     );
   }
 
-  // Show auth screens if not logged in
   if (!user) {
     return authView === 'login' ? (
       <Login onSwitchToSignup={() => setAuthView('signup')} />
@@ -197,7 +222,6 @@ function MainApp() {
     );
   }
 
-  // Show main app if logged in
   return (
     <div className="min-h-screen bg-linear-to-br from-slate-50 via-blue-50 to-indigo-100">
       <Toaster
@@ -223,42 +247,52 @@ function MainApp() {
         }}
       />
 
-      <Header onAddClick={() => setIsModalOpen(true)} items={items} />
+      <Header
+        onAddClick={() => setIsModalOpen(true)}
+        items={items}
+        currentView={currentView}
+        setCurrentView={setCurrentView}
+        isAdmin={user?.role === 'admin'}
+      />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Dashboard stats={stats} />
+      {currentView === 'admin' ? (
+        <AdminPanel />
+      ) : (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Dashboard stats={stats} />
 
-        <QuickActions
-          viewMode={viewMode}
-          setViewMode={setViewMode}
-          onAddItem={() => setIsModalOpen(true)}
-          onEndOfDay={() => setShowEndOfDay(true)}
-          onExport={() => showSuccess('Export coming soon!')}
-        />
+          <QuickActions
+            viewMode={viewMode}
+            setViewMode={setViewMode}
+            onAddItem={() => setIsModalOpen(true)}
+            onEndOfDay={() => setShowEndOfDay(true)}
+            onExport={() => showSuccess('Export coming soon!')}
+          />
 
-        {viewMode === 'table' ? (
-          <>
-            <FilterBar
-              filter={filter}
-              setFilter={setFilter}
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              sortBy={sortBy}
-              setSortBy={setSortBy}
-            />
+          {viewMode === 'table' ? (
+            <>
+              <FilterBar
+                filter={filter}
+                setFilter={setFilter}
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                sortBy={sortBy}
+                setSortBy={setSortBy}
+              />
 
-            <InventoryTable
-              items={filteredItems}
-              onUpdate={handleUpdateItem}
-              onDelete={handleDeleteItem}
-              loading={loading}
-              highlightedItemId={highlightedItemId}
-            />
-          </>
-        ) : (
-          <Analytics items={items} />
-        )}
-      </div>
+              <InventoryTable
+                items={filteredItems}
+                onUpdate={handleUpdateItem}
+                onDelete={handleDeleteItem}
+                loading={loading}
+                highlightedItemId={highlightedItemId}
+              />
+            </>
+          ) : (
+            <Analytics items={items} />
+          )}
+        </div>
+      )}
 
       <AddItemModal
         isOpen={isModalOpen}

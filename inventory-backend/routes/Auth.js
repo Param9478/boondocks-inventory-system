@@ -1,10 +1,10 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
-const User = require('../models/User'); // Make sure User model exists
+const User = require('../models/User');
+const ActivityLog = require('../models/ActivityLog');
 
 const router = express.Router();
 
-// Secret key for JWT (should be in environment variables)
 const JWT_SECRET =
   process.env.JWT_SECRET ||
   'your-super-secret-jwt-key-change-this-in-production';
@@ -15,7 +15,6 @@ router.post('/signup', async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
-    // Validate input
     if (!name || !email || !password) {
       return res.status(400).json({
         success: false,
@@ -23,7 +22,6 @@ router.post('/signup', async (req, res) => {
       });
     }
 
-    // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({
@@ -32,16 +30,31 @@ router.post('/signup', async (req, res) => {
       });
     }
 
-    // Create new user
+    // First user is admin, rest are regular users
+    const userCount = await User.countDocuments();
+    const role = userCount === 0 ? 'admin' : 'user';
+
     const user = await User.create({
       name,
       email,
       password,
+      role,
+      lastLogin: new Date(),
     });
 
     // Generate JWT token
     const token = jwt.sign({ userId: user._id }, JWT_SECRET, {
       expiresIn: JWT_EXPIRES_IN,
+    });
+
+    // Log activity
+    await ActivityLog.create({
+      user: user._id,
+      userName: user.name,
+      userEmail: user.email,
+      action: 'USER_CREATED',
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
     });
 
     res.status(201).json({
@@ -52,6 +65,7 @@ router.post('/signup', async (req, res) => {
         _id: user._id,
         name: user.name,
         email: user.email,
+        role: user.role,
       },
     });
   } catch (error) {
@@ -68,7 +82,6 @@ router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Validate input
     if (!email || !password) {
       return res.status(400).json({
         success: false,
@@ -76,7 +89,6 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Find user and include password field
     const user = await User.findOne({ email }).select('+password');
     if (!user) {
       return res.status(401).json({
@@ -85,7 +97,14 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Check password
+    // Check if user is active
+    if (!user.isActive) {
+      return res.status(403).json({
+        success: false,
+        message: 'Your account has been deactivated. Contact admin.',
+      });
+    }
+
     const isPasswordValid = await user.comparePassword(password);
     if (!isPasswordValid) {
       return res.status(401).json({
@@ -94,9 +113,23 @@ router.post('/login', async (req, res) => {
       });
     }
 
+    // Update last login
+    user.lastLogin = new Date();
+    await user.save();
+
     // Generate JWT token
     const token = jwt.sign({ userId: user._id }, JWT_SECRET, {
       expiresIn: JWT_EXPIRES_IN,
+    });
+
+    // Log activity
+    await ActivityLog.create({
+      user: user._id,
+      userName: user.name,
+      userEmail: user.email,
+      action: 'LOGIN',
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
     });
 
     res.json({
@@ -107,6 +140,7 @@ router.post('/login', async (req, res) => {
         _id: user._id,
         name: user.name,
         email: user.email,
+        role: user.role,
       },
     });
   } catch (error) {
@@ -118,7 +152,7 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// Verify token route (optional - for checking if user is still authenticated)
+// Verify token route
 router.get('/verify', async (req, res) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
@@ -146,6 +180,7 @@ router.get('/verify', async (req, res) => {
         _id: user._id,
         name: user.name,
         email: user.email,
+        role: user.role,
       },
     });
   } catch (error) {

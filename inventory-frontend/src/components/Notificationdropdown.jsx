@@ -17,9 +17,8 @@ const NotificationDropDown = ({
   anchorRef,
 }) => {
   const dropdownRef = useRef(null);
-  const [showAll, setShowAll] = useState(false); // State to toggle view more
+  const [showAll, setShowAll] = useState(false);
 
-  // Reset showAll when dropdown closes
   useEffect(() => {
     if (!isOpen) setShowAll(false);
   }, [isOpen]);
@@ -49,7 +48,6 @@ const NotificationDropDown = ({
 
   if (!isOpen) return null;
 
-  // Logic: Only show first 3 unless 'showAll' is true
   const displayedNotifications = showAll
     ? notifications
     : notifications.slice(0, 4);
@@ -57,12 +55,10 @@ const NotificationDropDown = ({
   return (
     <div
       ref={dropdownRef}
-      className="absolute 
-        right-0 sm:right-0 
-        top-full sm:mt-3 mt-1
-        -translate-x-1 sm:translate-x-0
-        w-[calc(100vw-2.5rem)] sm:w-96 
-        max-w-90 
+      className="fixed sm:absolute 
+        left-2 right-2 sm:left-auto sm:right-0
+        top-16 sm:top-full sm:mt-3
+        w-auto sm:w-96
         bg-white rounded-xl sm:rounded-2xl shadow-2xl border border-gray-200 overflow-hidden animate-dropdown z-50"
     >
       {/* Header */}
@@ -72,24 +68,28 @@ const NotificationDropDown = ({
             Notifications
           </h3>
           <p className="text-xs text-gray-500 mt-0.5">
-            {notifications.length} notifications
+            {notifications.length} notification
+            {notifications.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <div className="flex items-center space-x-1">
+        <div className="flex items-center gap-2">
           {notifications.length > 0 && (
             <button
               onClick={() => {
                 onClear();
                 onClose();
               }}
-              className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+              className="px-3 py-1.5 text-xs font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-all flex items-center gap-1.5"
             >
-              <Trash2 className="h-4 w-4" />
+              <Trash2 className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Clear All</span>
+              <span className="sm:hidden">Clear</span>
             </button>
           )}
           <button
             onClick={onClose}
             className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all"
+            aria-label="Close notifications"
           >
             <X className="h-4 w-4" />
           </button>
@@ -108,6 +108,7 @@ const NotificationDropDown = ({
             <p className="text-sm font-semibold text-gray-900">
               All caught up!
             </p>
+            <p className="text-xs text-gray-500 mt-1">No new notifications</p>
           </div>
         ) : (
           <div className="divide-y divide-gray-100">

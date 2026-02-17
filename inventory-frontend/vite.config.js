@@ -3,64 +3,45 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
+// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-
       devOptions: {
-        enabled: true,
+        enabled: false, // ✅ Disable in development to avoid workbox errors
+      },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+        navigateFallback: null, // ✅ Prevent navigation fallback issues
       },
       manifest: {
+        name: 'Boondocks Inventory',
         short_name: 'Boondocks',
-        name: 'Boondocks Inventory Management',
-        description:
-          'Smart inventory management system for Boondocks Restaurant',
-        start_url: '/',
-        display: 'standalone',
-        theme_color: '#6366f1',
+        description: 'Smart Inventory Management System',
+        theme_color: '#4f46e5',
         background_color: '#ffffff',
-        orientation: 'portrait',
+        display: 'standalone',
+        scope: '/',
+        start_url: '/',
         icons: [
           {
             src: '/favicon/web-app-manifest-192x192.png',
-            type: 'image/png',
             sizes: '192x192',
-            purpose: 'any',
-          },
-          {
-            src: '/favicon/web-app-manifest-192x192.png',
             type: 'image/png',
-            sizes: '192x192',
-            purpose: 'maskable',
-          },
-          {
-            src: '/favicon/web-app-manifest-512x512.png',
-            type: 'image/png',
-            sizes: '512x512',
-            purpose: 'any',
-          },
-        ],
-
-        screenshots: [
-          {
-            src: '/favicon/web-app-manifest-512x512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            form_factor: 'wide',
-            label: 'Boondocks Inventory Dashboard',
           },
           {
             src: '/favicon/web-app-manifest-512x512.png',
             sizes: '512x512',
             type: 'image/png',
-            form_factor: 'narrow',
-            label: 'Inventory Management Mobile',
           },
         ],
       },
     }),
   ],
+  server: {
+    port: 5173,
+  },
 });

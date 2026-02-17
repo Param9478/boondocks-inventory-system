@@ -15,36 +15,47 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Set API URL once on mount
   useEffect(() => {
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
     axios.defaults.baseURL = API_URL;
-    console.log('🔗 API URL:', API_URL); // Debug log
+    console.log('🔗 API URL:', API_URL);
   }, []);
 
+  // Check for existing session on mount
   useEffect(() => {
-    // Check if user is logged in on mount
     const token = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
 
     if (token && userData) {
-      setUser(JSON.parse(userData));
+      // ✅ Set token BEFORE setting user (prevents race condition)
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      setUser(JSON.parse(userData));
     }
     setLoading(false);
   }, []);
 
   const login = async (email, password) => {
     try {
+      console.log(
+        '🔐 Attempting login to:',
+        axios.defaults.baseURL + '/api/auth/login',
+      );
       const response = await axios.post('/api/auth/login', { email, password });
       const { token, user: userData } = response.data;
 
+      // ✅ CRITICAL: Set token in axios FIRST, then localStorage, then state
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(userData));
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
+      // ✅ Small delay to ensure token is set everywhere before state update
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       setUser(userData);
       return { success: true };
     } catch (error) {
+      console.error('❌ Login error:', error.response?.data || error.message);
       return {
         success: false,
         error: error.response?.data?.message || 'Login failed',
@@ -54,6 +65,10 @@ export const AuthProvider = ({ children }) => {
 
   const signup = async (name, email, password) => {
     try {
+      console.log(
+        '📝 Attempting signup to:',
+        axios.defaults.baseURL + '/api/auth/signup',
+      );
       const response = await axios.post('/api/auth/signup', {
         name,
         email,
@@ -61,13 +76,18 @@ export const AuthProvider = ({ children }) => {
       });
       const { token, user: userData } = response.data;
 
+      // ✅ CRITICAL: Set token in axios FIRST, then localStorage, then state
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(userData));
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
+      // ✅ Small delay to ensure token is set everywhere before state update
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       setUser(userData);
       return { success: true };
     } catch (error) {
+      console.error('❌ Signup error:', error.response?.data || error.message);
       return {
         success: false,
         error: error.response?.data?.message || 'Signup failed',
