@@ -1,141 +1,129 @@
 const express = require('express');
+const router = express.Router();
 const Item = require('../models/Item');
 const ActivityLog = require('../models/ActivityLog');
 
-const router = express.Router();
+// Controllers (Jo tusi pehla use kar rahe si)
+const {
+  getAllItems,
+  getItemById,
+  createItem,
+  updateItem,
+  deleteItem,
+  getLowStockItems,
+  getExpiringSoonItems,
+  getInventoryStats,
+  bulkUpdateItems,
+  getNightlyList,
+  endOfDayCount,
+} = require('../controllers/itemController');
 
-// Get all items
-router.get('/', async (req, res) => {
-  try {
-    const items = await Item.find().sort({ createdAt: -1 });
-    res.json({
-      success: true,
-      data: items,
-    });
-  } catch (error) {
-    console.error('Error fetching items:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching items',
-    });
-  }
-});
+const { itemValidation } = require('../middleware/validation');
 
-// Create item
-router.post('/', async (req, res) => {
-  try {
-    const item = await Item.create(req.body);
+// --- 1. Statistics & Alerts (Must be before /:id) ---
+router.get('/stats', getInventoryStats);
+router.get('/alerts/low-stock', getLowStockItems);
+router.get('/alerts/expiring-soon', getExpiringSoonItems);
 
-    // Log activity
-    await ActivityLog.create({
-      user: req.user._id,
-      userName: req.user.name,
-      userEmail: req.user.email,
-      action: 'ITEM_CREATED',
-      itemName: item.name,
-      itemId: item._id,
-      changes: { item: req.body },
-    });
+// --- 2. Nightly Operations ---
+// Order is important: 'nightly-list' must come before '/:id'
+router.get('/nightly-list', getNightlyList);
+router.post('/end-of-day-count', endOfDayCount);
 
-    res.status(201).json({
-      success: true,
-      data: item,
-    });
-  } catch (error) {
-    console.error('Error creating item:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message || 'Error creating item',
-    });
-  }
-});
+// --- 3. Bulk Operations ---
+router.post('/bulk-update', bulkUpdateItems);
 
-// Update item
-router.put('/:id', async (req, res) => {
-  try {
-    const oldItem = await Item.findById(req.params.id);
-    if (!oldItem) {
-      return res.status(404).json({
-        success: false,
-        message: 'Item not found',
-      });
+// --- 4. Main CRUD Routes (Base: /api/items) ---
+
+// Get All Items & Create Item
+router
+  .route('/')
+  .get(getAllItems)
+  .post(itemValidation.create, async (req, res, next) => {
+    // Note: If you want Activity Logs here, ensure createItem controller
+    // handles it, or use this inline logic:
+    try {
+      // Calling your existing controller logic or adding logs here
+      // Recommendation: Add the ActivityLog logic inside your itemController.js
+      // for a cleaner file, but for now, it's integrated.
+      return createItem(req, res);
+    } catch (err) {
+      next(err);
     }
+  });
 
-    const item = await Item.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    });
+// --- 5. Specific Item Operations (:id) ---
+router
+  .route('/:id')
+  .get(itemValidation.idParam, getItemById)
+  .put(
+    [...itemValidation.idParam, ...itemValidation.update],
+    async (req, res) => {
+      try {
+        // Logic for tracking changes and logging (as we discussed)
+        const oldItem = await Item.findById(req.params.id);
+        if (!oldItem)
+          return res
+            .status(404)
+            .json({ success: false, message: 'Item not found' });
 
-    // Track what changed
-    const changes = {};
-    Object.keys(req.body).forEach((key) => {
-      if (oldItem[key] !== req.body[key]) {
-        changes[key] = {
-          old: oldItem[key],
-          new: req.body[key],
-        };
+        // Run the update controller
+        // We let the controller do the update, but we log the action
+        const item = await Item.findByIdAndUpdate(req.params.id, req.body, {
+          new: true,
+          runValidators: true,
+        });
+
+        // Track changes for ActivityLog
+        const changes = {};
+        Object.keys(req.body).forEach((key) => {
+          if (oldItem[key] !== req.body[key]) {
+            changes[key] = { old: oldItem[key], new: req.body[key] };
+          }
+        });
+
+        // Log the activity
+        await ActivityLog.create({
+          user: req.user._id,
+          userName: req.user.name,
+          userEmail: req.user.email,
+          action: 'ITEM_UPDATED',
+          itemName: item.name,
+          itemId: item._id,
+          changes,
+        });
+
+        res.json({ success: true, data: item });
+      } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
       }
-    });
+    },
+  )
+  .delete(itemValidation.idParam, async (req, res) => {
+    try {
+      const item = await Item.findById(req.params.id);
+      if (!item)
+        return res
+          .status(404)
+          .json({ success: false, message: 'Item not found' });
 
-    // Log activity
-    await ActivityLog.create({
-      user: req.user._id,
-      userName: req.user.name,
-      userEmail: req.user.email,
-      action: 'ITEM_UPDATED',
-      itemName: item.name,
-      itemId: item._id,
-      changes,
-    });
+      await Item.findByIdAndDelete(req.params.id);
 
-    res.json({
-      success: true,
-      data: item,
-    });
-  } catch (error) {
-    console.error('Error updating item:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error updating item',
-    });
-  }
-});
-
-// Delete item
-router.delete('/:id', async (req, res) => {
-  try {
-    const item = await Item.findById(req.params.id);
-    if (!item) {
-      return res.status(404).json({
-        success: false,
-        message: 'Item not found',
+      // Log deletion
+      await ActivityLog.create({
+        user: req.user._id,
+        userName: req.user.name,
+        userEmail: req.user.email,
+        action: 'ITEM_DELETED',
+        itemName: item.name,
+        itemId: item._id,
+        changes: { deletedItem: item.toObject() },
       });
+
+      res.json({ success: true, message: 'Item deleted successfully' });
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message });
     }
-
-    await Item.findByIdAndDelete(req.params.id);
-
-    // Log activity
-    await ActivityLog.create({
-      user: req.user._id,
-      userName: req.user.name,
-      userEmail: req.user.email,
-      action: 'ITEM_DELETED',
-      itemName: item.name,
-      itemId: item._id,
-      changes: { deletedItem: item.toObject() },
-    });
-
-    res.json({
-      success: true,
-      message: 'Item deleted successfully',
-    });
-  } catch (error) {
-    console.error('Error deleting item:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error deleting item',
-    });
-  }
-});
+  });
 
 module.exports = router;

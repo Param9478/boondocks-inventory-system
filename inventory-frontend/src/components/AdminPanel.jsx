@@ -16,10 +16,15 @@ import {
   Edit,
   AlertCircle,
   ChevronRight,
+  Crown,
+  User as UserIcon,
+  Lock,
 } from 'lucide-react';
 import { showSuccess, showError } from '../utils/toast';
+import { useAuth } from '../context/AuthContext';
 
 const AdminPanel = () => {
+  const { user: currentUser } = useAuth(); // ✅ Get current logged-in user
   const [activeTab, setActiveTab] = useState('users');
   const [users, setUsers] = useState([]);
   const [activityLogs, setActivityLogs] = useState([]);
@@ -70,18 +75,29 @@ const AdminPanel = () => {
     }
   };
 
-  const toggleUserRole = async (userId, currentRole) => {
-    const newRole = currentRole === 'admin' ? 'user' : 'admin';
+  const updateUserRole = async (userId, newRole) => {
+    // ✅ Prevent changing own role
+    if (userId === currentUser?._id) {
+      showError('You cannot change your own role');
+      return;
+    }
+
     try {
       await axios.put(`/api/admin/users/${userId}`, { role: newRole });
       showSuccess(`User role updated to ${newRole}`);
       fetchUsers();
     } catch (err) {
-      showError('Failed to update user role');
+      showError(err.response?.data?.message || 'Failed to update user role');
     }
   };
 
   const toggleUserStatus = async (userId, currentStatus) => {
+    // ✅ Prevent deactivating yourself
+    if (userId === currentUser?._id) {
+      showError('You cannot deactivate your own account');
+      return;
+    }
+
     try {
       await axios.put(`/api/admin/users/${userId}`, {
         isActive: !currentStatus,
@@ -94,6 +110,12 @@ const AdminPanel = () => {
   };
 
   const deleteUser = async (userId) => {
+    // ✅ Prevent deleting yourself
+    if (userId === currentUser?._id) {
+      showError('You cannot delete your own account');
+      return;
+    }
+
     if (!window.confirm('Are you sure you want to delete this user?')) return;
 
     try {
@@ -119,6 +141,10 @@ const AdminPanel = () => {
         return <Trash2 className="h-4 w-4" />;
       case 'USER_CREATED':
         return <Users className="h-4 w-4" />;
+      case 'USER_UPDATED':
+        return <Edit className="h-4 w-4" />;
+      case 'USER_DELETED':
+        return <Trash2 className="h-4 w-4" />;
       default:
         return <Activity className="h-4 w-4" />;
     }
@@ -135,48 +161,121 @@ const AdminPanel = () => {
   // Mobile User Card Component
   const UserCard = ({ user }) => {
     const isExpanded = expandedUser === user._id;
+    const [showRoleDropdown, setShowRoleDropdown] = useState(false);
+    const isCurrentUser = user._id === currentUser?._id; // ✅ Check if it's current user
 
     return (
-      <div
-        className="bg-white rounded-xl shadow-sm border-2 border-gray-200 overflow-hidden mb-3"
-        onClick={() => setExpandedUser(isExpanded ? null : user._id)}
-      >
+      <div className="bg-white rounded-xl shadow-sm border-2 border-gray-200 overflow-hidden mb-3">
         <div className="p-4">
-          <div className="flex items-start justify-between mb-3">
+          <div
+            className="flex items-start justify-between mb-3"
+            onClick={() => setExpandedUser(isExpanded ? null : user._id)}
+          >
             <div className="flex-1 min-w-0">
-              <h4 className="font-bold text-gray-900 text-base truncate">
-                {user.name}
-              </h4>
+              <div className="flex items-center gap-2">
+                <h4 className="font-bold text-gray-900 text-base truncate">
+                  {user.name}
+                </h4>
+                {isCurrentUser && (
+                  <span className="px-2 py-0.5 text-[10px] font-bold bg-indigo-100 text-indigo-700 rounded-full">
+                    YOU
+                  </span>
+                )}
+              </div>
               <p className="text-sm text-gray-500 truncate">{user.email}</p>
+
+              {/* Role & Status Badges */}
               <div className="flex items-center gap-2 mt-2">
+                {/* Role Dropdown */}
+                <div className="relative">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (isCurrentUser) {
+                        showError('You cannot change your own role');
+                        return;
+                      }
+                      setShowRoleDropdown(!showRoleDropdown);
+                    }}
+                    disabled={isCurrentUser}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                      isCurrentUser ? 'opacity-60 cursor-not-allowed' : ''
+                    } ${
+                      user.role === 'admin'
+                        ? 'bg-linear-to-r from-purple-500 to-indigo-600 text-white shadow-md'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {isCurrentUser ? (
+                      <Lock className="h-3.5 w-3.5" />
+                    ) : user.role === 'admin' ? (
+                      <Crown className="h-3.5 w-3.5" />
+                    ) : (
+                      <UserIcon className="h-3.5 w-3.5" />
+                    )}
+                    <span>{user.role.toUpperCase()}</span>
+                    {!isCurrentUser && <ChevronDown className="h-3 w-3" />}
+                  </button>
+
+                  {showRoleDropdown && !isCurrentUser && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-10"
+                        onClick={() => setShowRoleDropdown(false)}
+                      />
+                      <div className="absolute z-20 mt-1 w-32 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            updateUserRole(user._id, 'user');
+                            setShowRoleDropdown(false);
+                          }}
+                          className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 transition-colors"
+                        >
+                          <UserIcon className="h-4 w-4 text-gray-600" />
+                          <span className="font-medium">User</span>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            updateUserRole(user._id, 'admin');
+                            setShowRoleDropdown(false);
+                          }}
+                          className="w-full px-3 py-2 text-left text-sm hover:bg-purple-50 flex items-center gap-2 transition-colors border-t border-gray-100"
+                        >
+                          <Crown className="h-4 w-4 text-purple-600" />
+                          <span className="font-medium text-purple-600">
+                            Admin
+                          </span>
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Status Toggle */}
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    toggleUserRole(user._id, user.role);
-                  }}
-                  className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    user.role === 'admin'
-                      ? 'bg-purple-100 text-purple-700'
-                      : 'bg-gray-100 text-gray-700'
-                  }`}
-                >
-                  {user.role}
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
+                    if (isCurrentUser) {
+                      showError('You cannot deactivate your own account');
+                      return;
+                    }
                     toggleUserStatus(user._id, user.isActive);
                   }}
-                  className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+                  disabled={isCurrentUser}
+                  className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                    isCurrentUser ? 'opacity-60 cursor-not-allowed' : ''
+                  } ${
                     user.isActive
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-red-100 text-red-700'
+                      ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                      : 'bg-red-100 text-red-700 hover:bg-red-200'
                   }`}
                 >
                   {user.isActive ? (
-                    <UserCheck className="h-3 w-3" />
+                    <UserCheck className="h-3.5 w-3.5" />
                   ) : (
-                    <UserX className="h-3 w-3" />
+                    <UserX className="h-3.5 w-3.5" />
                   )}
                   {user.isActive ? 'Active' : 'Inactive'}
                 </button>
@@ -213,7 +312,13 @@ const AdminPanel = () => {
               e.stopPropagation();
               deleteUser(user._id);
             }}
-            className="p-2 text-red-600 hover:bg-red-50 rounded-full transition-all"
+            disabled={isCurrentUser}
+            className={`p-2 rounded-full transition-all ${
+              isCurrentUser
+                ? 'text-gray-400 cursor-not-allowed'
+                : 'text-red-600 hover:bg-red-50'
+            }`}
+            title={isCurrentUser ? 'Cannot delete yourself' : 'Delete User'}
           >
             <Trash2 className="h-4 w-4" />
           </button>
@@ -310,6 +415,9 @@ const AdminPanel = () => {
                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">
                           Last Login
                         </th>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">
+                          Created
+                        </th>
                         <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase">
                           Actions
                         </th>
@@ -317,64 +425,14 @@ const AdminPanel = () => {
                     </thead>
                     <tbody className="divide-y divide-gray-200">
                       {users.map((user) => (
-                        <tr key={user._id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4">
-                            <div>
-                              <div className="font-medium text-gray-900">
-                                {user.name}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                {user.email}
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <button
-                              onClick={() =>
-                                toggleUserRole(user._id, user.role)
-                              }
-                              className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                user.role === 'admin'
-                                  ? 'bg-purple-100 text-purple-700'
-                                  : 'bg-gray-100 text-gray-700'
-                              }`}
-                            >
-                              {user.role}
-                            </button>
-                          </td>
-                          <td className="px-6 py-4">
-                            <button
-                              onClick={() =>
-                                toggleUserStatus(user._id, user.isActive)
-                              }
-                              className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium ${
-                                user.isActive
-                                  ? 'bg-green-100 text-green-700'
-                                  : 'bg-red-100 text-red-700'
-                              }`}
-                            >
-                              {user.isActive ? (
-                                <UserCheck className="h-3 w-3" />
-                              ) : (
-                                <UserX className="h-3 w-3" />
-                              )}
-                              {user.isActive ? 'Active' : 'Inactive'}
-                            </button>
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-600">
-                            {user.lastLogin
-                              ? new Date(user.lastLogin).toLocaleDateString()
-                              : 'Never'}
-                          </td>
-                          <td className="px-6 py-4 text-right">
-                            <button
-                              onClick={() => deleteUser(user._id)}
-                              className="text-red-600 hover:text-red-700"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </td>
-                        </tr>
+                        <DesktopUserRow
+                          key={user._id}
+                          user={user}
+                          currentUserId={currentUser?._id}
+                          updateUserRole={updateUserRole}
+                          toggleUserStatus={toggleUserStatus}
+                          deleteUser={deleteUser}
+                        />
                       ))}
                     </tbody>
                   </table>
@@ -383,7 +441,7 @@ const AdminPanel = () => {
             </>
           )}
 
-          {/* Activity Logs Tab */}
+          {/* Activity Logs Tab - Same as before */}
           {activeTab === 'activity' && (
             <div className="space-y-3">
               {activityLogs.map((log) => (
@@ -448,7 +506,7 @@ const AdminPanel = () => {
             </div>
           )}
 
-          {/* Stats Tab */}
+          {/* Stats Tab - Same as before */}
           {activeTab === 'stats' && stats && (
             <div className="space-y-6">
               {/* User Stats Grid */}
@@ -568,6 +626,146 @@ const AdminPanel = () => {
         </>
       )}
     </div>
+  );
+};
+
+// Desktop User Row Component with Dropdown
+const DesktopUserRow = ({
+  user,
+  currentUserId,
+  updateUserRole,
+  toggleUserStatus,
+  deleteUser,
+}) => {
+  const [showRoleDropdown, setShowRoleDropdown] = useState(false);
+  const isCurrentUser = user._id === currentUserId;
+
+  return (
+    <tr className="hover:bg-gray-50">
+      <td className="px-6 py-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-gray-900">{user.name}</span>
+            {isCurrentUser && (
+              <span className="px-2 py-0.5 text-[10px] font-bold bg-indigo-100 text-indigo-700 rounded-full">
+                YOU
+              </span>
+            )}
+          </div>
+          <div className="text-sm text-gray-500">{user.email}</div>
+        </div>
+      </td>
+      <td className="px-6 py-4">
+        <div className="relative inline-block">
+          <button
+            onClick={() => {
+              if (isCurrentUser) {
+                showError('You cannot change your own role');
+                return;
+              }
+              setShowRoleDropdown(!showRoleDropdown);
+            }}
+            disabled={isCurrentUser}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              isCurrentUser ? 'opacity-60 cursor-not-allowed' : ''
+            } ${
+              user.role === 'admin'
+                ? 'bg-linear-to-r from-purple-500 to-indigo-600 text-white shadow-md hover:shadow-lg'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            {isCurrentUser ? (
+              <Lock className="h-4 w-4" />
+            ) : user.role === 'admin' ? (
+              <Crown className="h-4 w-4" />
+            ) : (
+              <UserIcon className="h-4 w-4" />
+            )}
+            <span>{user.role.toUpperCase()}</span>
+            {!isCurrentUser && <ChevronDown className="h-3 w-3" />}
+          </button>
+
+          {showRoleDropdown && !isCurrentUser && (
+            <>
+              <div
+                className="fixed inset-0 z-10"
+                onClick={() => setShowRoleDropdown(false)}
+              />
+              <div className="absolute z-20 mt-1 w-36 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden">
+                <button
+                  onClick={() => {
+                    updateUserRole(user._id, 'user');
+                    setShowRoleDropdown(false);
+                  }}
+                  className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 flex items-center gap-2 transition-colors"
+                >
+                  <UserIcon className="h-4 w-4 text-gray-600" />
+                  <span className="font-medium">User</span>
+                </button>
+                <button
+                  onClick={() => {
+                    updateUserRole(user._id, 'admin');
+                    setShowRoleDropdown(false);
+                  }}
+                  className="w-full px-4 py-2.5 text-left text-sm hover:bg-purple-50 flex items-center gap-2 transition-colors border-t border-gray-100"
+                >
+                  <Crown className="h-4 w-4 text-purple-600" />
+                  <span className="font-medium text-purple-600">Admin</span>
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </td>
+      <td className="px-6 py-4">
+        <button
+          onClick={() => {
+            if (isCurrentUser) {
+              showError('You cannot deactivate your own account');
+              return;
+            }
+            toggleUserStatus(user._id, user.isActive);
+          }}
+          disabled={isCurrentUser}
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            isCurrentUser ? 'opacity-60 cursor-not-allowed' : ''
+          } ${
+            user.isActive
+              ? 'bg-green-100 text-green-700 hover:bg-green-200'
+              : 'bg-red-100 text-red-700 hover:bg-red-200'
+          }`}
+        >
+          {user.isActive ? (
+            <UserCheck className="h-4 w-4" />
+          ) : (
+            <UserX className="h-4 w-4" />
+          )}
+          {user.isActive ? 'Active' : 'Inactive'}
+        </button>
+      </td>
+      <td className="px-6 py-4 text-sm text-gray-600">
+        {user.lastLogin
+          ? new Date(user.lastLogin).toLocaleDateString()
+          : 'Never'}
+      </td>
+      <td className="px-6 py-4 text-sm text-gray-600">
+        {new Date(user.createdAt).toLocaleDateString()}
+      </td>
+      <td className="px-6 py-4 text-right">
+        <button
+          onClick={() => deleteUser(user._id)}
+          disabled={isCurrentUser}
+          className={`p-2 rounded-lg transition-all ${
+            isCurrentUser
+              ? 'text-gray-400 cursor-not-allowed'
+              : 'text-red-600 hover:bg-red-50'
+          }`}
+          title={isCurrentUser ? 'Cannot delete yourself' : 'Delete User'}
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      </td>
+    </tr>
   );
 };
 

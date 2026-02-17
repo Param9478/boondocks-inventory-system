@@ -28,7 +28,6 @@ export const AuthProvider = ({ children }) => {
     const userData = localStorage.getItem('user');
 
     if (token && userData) {
-      // ✅ Set token BEFORE setting user (prevents race condition)
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       setUser(JSON.parse(userData));
     }
@@ -44,15 +43,17 @@ export const AuthProvider = ({ children }) => {
       const response = await axios.post('/api/auth/login', { email, password });
       const { token, user: userData } = response.data;
 
-      // ✅ CRITICAL: Set token in axios FIRST, then localStorage, then state
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(userData));
 
-      // ✅ Small delay to ensure token is set everywhere before state update
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       setUser(userData);
+
+      // ✅ Dispatch event to reset app state on login
+      window.dispatchEvent(new CustomEvent('userLoggedIn'));
+
       return { success: true };
     } catch (error) {
       console.error('❌ Login error:', error.response?.data || error.message);
@@ -76,15 +77,17 @@ export const AuthProvider = ({ children }) => {
       });
       const { token, user: userData } = response.data;
 
-      // ✅ CRITICAL: Set token in axios FIRST, then localStorage, then state
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(userData));
 
-      // ✅ Small delay to ensure token is set everywhere before state update
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       setUser(userData);
+
+      // ✅ Dispatch event to reset app state on signup
+      window.dispatchEvent(new CustomEvent('userLoggedIn'));
+
       return { success: true };
     } catch (error) {
       console.error('❌ Signup error:', error.response?.data || error.message);
@@ -100,6 +103,9 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('user');
     delete axios.defaults.headers.common['Authorization'];
     setUser(null);
+
+    // ✅ Dispatch event to reset app state on logout
+    window.dispatchEvent(new CustomEvent('userLoggedOut'));
   };
 
   return (

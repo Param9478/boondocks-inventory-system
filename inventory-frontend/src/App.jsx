@@ -33,6 +33,29 @@ function MainApp() {
   const [showEndOfDay, setShowEndOfDay] = useState(false);
   const [highlightedItemId, setHighlightedItemId] = useState(null);
 
+  // ✅ Reset to inventory view on login/logout
+  useEffect(() => {
+    const handleLogin = () => {
+      console.log('🔄 User logged in - resetting to inventory view');
+      setCurrentView('inventory');
+    };
+
+    const handleLogout = () => {
+      console.log('🔄 User logged out - resetting to inventory view');
+      setCurrentView('inventory');
+      setItems([]);
+      setFilteredItems([]);
+    };
+
+    window.addEventListener('userLoggedIn', handleLogin);
+    window.addEventListener('userLoggedOut', handleLogout);
+
+    return () => {
+      window.removeEventListener('userLoggedIn', handleLogin);
+      window.removeEventListener('userLoggedOut', handleLogout);
+    };
+  }, []);
+
   // Reset to login when logged out
   useEffect(() => {
     if (!user && !authLoading) {
@@ -40,9 +63,7 @@ function MainApp() {
     }
   }, [user, authLoading]);
 
-  // ✅ Fetch items only when user is set AND not loading
   const fetchItems = useCallback(async () => {
-    // Don't fetch if no user or still loading auth
     if (!user || authLoading) {
       console.log(
         '⏸️ Skipping fetch - user:',
@@ -65,7 +86,6 @@ function MainApp() {
       setItems(allItems);
     } catch (err) {
       console.error('❌ Fetch error:', err.response?.data || err.message);
-      // Only show error if it's not an auth issue
       if (err.response?.status !== 401) {
         showError('Failed to fetch inventory');
       }
@@ -74,10 +94,8 @@ function MainApp() {
     }
   }, [user, authLoading]);
 
-  // ✅ Only fetch when user changes AND auth is done loading
   useEffect(() => {
     if (currentView === 'inventory' && user && !authLoading) {
-      // Small delay to ensure token is set
       const timer = setTimeout(() => {
         fetchItems();
       }, 200);
